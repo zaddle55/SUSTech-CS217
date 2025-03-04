@@ -3,20 +3,64 @@
 #include <ctype.h>
 #include <stdio.h>
 
+#include "error.h"
 #include "math.h"
 
-void initen( ExtendedNum* num )
+/**
+ * @brief Create an extended number
+ * @details Allocate memory for the extended number
+ * @note The caller is responsible for releasing the memory
+ * @return ExtendedNum* A pointer extended number
+ */
+ExtendedNum* Exn_create(void)
 {
-    memset(num->digits, 0, sizeof(num->digits));
+    ExtendedNum* num = (ExtendedNum*)malloc(sizeof(ExtendedNum));
+    if (num == NULL) {
+        MEM_ALLOC_FAIL(&num, "The extended number allocation failed");
+    }
+    Exn_init(num, MAX_DIGITS);
+    return num;
+}
+
+void Exn_release( ExtendedNum* num )
+{
+    if (num != NULL) {
+        free(num);
+        if (num->digits != NULL) {
+            free(num->digits);
+        }
+    }
+}
+
+/// @brief Initialize the extended number
+/// @param num Extended number to initialize
+/// @param prec Precision of the number
+void Exn_init( ExtendedNum* num, size_t prec)
+{
+    if (num == NULL) {
+        MEM_ACCESS_NULLPTR("num", "The extended number can't be NULL");
+        return;
+    }
+    if (num != NULL && num->digits != NULL) {
+        free(num->digits);
+    }
+    num->digits = (char*)malloc(prec * sizeof(char));
+    if (num->digits == NULL) {
+        MEM_ALLOC_FAIL(&num->digits, "The extended number digits allocation failed");
+    }
     num->length = 0;
     num->decimal = -1;
     num->sign = 1;
     num->error = EXTENDED_NUM_OK;
 }
 
-ExtendedNumError atoen( ExtendedNum* num, const char* str )
+ExtendedNumError atoExn( ExtendedNum* num, const char* str )
 {
-    initen(num);
+    if (str == NULL || str[0] == '\0') {
+        num->error = EXTENDED_NUM_INVALID_INPUT;
+        return num->error;
+    }
+    Exn_init(num, strlen(str));
     
     if (str == NULL || str[0] == '\0') {
         num->error = EXTENDED_NUM_INVALID_INPUT;
@@ -121,15 +165,9 @@ ExtendedNumError atoen( ExtendedNum* num, const char* str )
     return EXTENDED_NUM_OK;
 }
 
-ExtendedNumError adden( ExtendedNum* result, const ExtendedNum* num1, const ExtendedNum* num2 )
+NO_EXPORT ExtendedNumError __unsigned_adden( ExtendedNum* result, const ExtendedNum* num1, const ExtendedNum* num2 )
 {
-    initen(result);
-
-}
-
-ExtendedNumError __unsigned_adden( ExtendedNum* result, const ExtendedNum* num1, const ExtendedNum* num2 )
-{
-    initen(result);
+    Exn_init(result, num1->length + num2->length);
 
     // align the decimal
     int maxDecimal = num1->decimal > num2->decimal ? num1->decimal : num2->decimal;
@@ -164,9 +202,9 @@ ExtendedNumError __unsigned_adden( ExtendedNum* result, const ExtendedNum* num1,
 
 }
 
-ExtendedNumError __unsigned_suben( ExtendedNum* result, const ExtendedNum* num1, const ExtendedNum* num2 )
+NO_EXPORT ExtendedNumError __unsigned_suben( ExtendedNum* result, const ExtendedNum* num1, const ExtendedNum* num2 )
 {
-    initen(result);
+    Exn_init(result, num1->length + num2->length);
 
     // align the decimal
     int maxDecimal = num1->decimal > num2->decimal ? num1->decimal : num2->decimal;
@@ -201,10 +239,83 @@ ExtendedNumError __unsigned_suben( ExtendedNum* result, const ExtendedNum* num1,
 
 }
 
+ExtendedNumError Exn_abs( ExtendedNum* result, const ExtendedNum* num )
+{
+    Exn_init(result, num->length);
+    result->sign = 1;
+    result->length = num->length;
+    result->decimal = num->decimal;
+    for (int i = 0; i < num->length; i++) {
+        result->digits[i] = num->digits[i];
+    }
+    return EXTENDED_NUM_OK;
+}
+
+ExtendedNumError Exn_add( ExtendedNum* result, const ExtendedNum* num1, const ExtendedNum* num2 )
+{
+    int sign = num1->sign * num2->sign;
+
+    if (sign > 0) {
+        result->sign = num1->sign;
+        return __unsigned_adden(result, num1, num2);
+    } else {
+        int cmp = Exn_cmp(num1, num2);
+        if (cmp == 0) {
+            return EXTENDED_NUM_OK;
+        } else if (cmp > 0) {
+            result->sign = num1->sign;
+            return __unsigned_suben(result, num1, num2);
+        } else {
+            result->sign = num2->sign;
+            return __unsigned_suben(result, num2, num1);
+        }
+    }
+
+}
+
+Exnerr Exn_sub( ExtendedNum* result, const ExtendedNum* num1, const ExtendedNum* num2 )
+{
+    ExtendedNum num2Copy;
+    Exn_abs(&num2Copy, num2);
+    return Exn_add(result, num1, &num2Copy);
+}
+
+int Exn_cmp( const ExtendedNum* num1, const ExtendedNum* num2 )
+{
+    if (num1->sign > num2->sign) {
+        return 1;
+    } else if (num1->sign < num2->sign) {
+        return -1;
+    } else {
+        if (num1->decimal > num2->decimal) {
+            return num1->sign;
+        } else if (num1->decimal < num2->decimal) {
+            return -num1->sign;
+        } else {
+            int i = 0;
+            while (i < num1->length && i < num2->length) {
+                if (num1->digits[i] > num2->digits[i]) {
+                    return num1->sign;
+                } else if (num1->digits[i] < num2->digits[i]) {
+                    return -num1->sign;
+                }
+                i++;
+            }
+            if (i < num1->length) {
+                return num1->sign;
+            } else if (i < num2->length) {
+                return -num1->sign;
+            } else {
+                return 0;
+            }
+        }
+    }
+}
+
 void fmt( const ExtendedNum* num, char* str, int maxlen )
 {
     if (num->error != EXTENDED_NUM_OK) {
-        snprintf(str, maxlen, "Error: %s", extended_num_error_to_string(num->error));
+        snprintf(str, maxlen, "Error: %s", Exn(err2str)(num->error));
         return;
     }
     
@@ -239,7 +350,7 @@ void test_atoen()
     ExtendedNum num;
     char input[MAX_DIGITS];
     scanf("%s", input);
-    ExtendedNumError error = atoen(&num, input);
+    ExtendedNumError error = atoExn(&num, input);
     if (error == EXTENDED_NUM_OK) {
         printf("Number: ");
         for (int i = 0; i < num.length; i++) {
@@ -248,7 +359,7 @@ void test_atoen()
         printf("\nDecimal position: %d\n", num.decimal);
         printf("Sign: %d\n", num.sign);
     } else {
-        printf("Error: %s\n", extended_num_error_to_string(error));
+        printf("Error: %s\n", Exn(err2str)(error));
     }
 }
 
@@ -256,20 +367,44 @@ void test_fmt()
 {
     ExtendedNum num;
     char str[MAX_DIGITS];
-    ExtendedNumError error = atoen(&num, "5.");
+    ExtendedNumError error = atoExn(&num, "5.E990");
     if (error == EXTENDED_NUM_OK) {
         fmt(&num, str, MAX_DIGITS);
         printf("Formatted: %s\n", str);
     } else {
-        printf("Error: %s\n", extended_num_error_to_string(error));
+        printf("Error: %s\n", Exn(err2str)(error));
     }
+}
+
+void test_add_primary()
+{
+    ExtendedNum num1, num2, result;
+    atoExn(&num1, "123.456");
+    atoExn(&num2, "789.012");
+    Exn_add(&result, &num1, &num2);
+    char str[MAX_DIGITS];
+    fmt(&result, str, MAX_DIGITS);
+    printf("Result: %s\n", str);
+}
+
+void test_add_pos_neg()
+{
+    ExtendedNum num1, num2, result;
+    atoExn(&num1, "123.456");
+    atoExn(&num2, "-789.012");
+    Exn_add(&result, &num1, &num2);
+    char str[MAX_DIGITS];
+    fmt(&result, str, MAX_DIGITS);
+    printf("Result: %s\n", str);
 }
 
 int main()
 {
     // test
-    test_atoen();
+    // test_atoen();
     test_fmt();
+    test_add_primary();
+    test_add_pos_neg();
 
     return 0;
 }
