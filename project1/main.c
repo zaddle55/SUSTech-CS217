@@ -7,326 +7,177 @@
 #include <getopt.h>
 
 #include "math.h"
-#include "error.h"
-#include "util.h"
+#include "shell.h"
 
 #define BANNER " \
-                         _       _ __          \n\
-               ____ ___  (_)___  (_) /_  _____ \n\
-              / __ `__ \\/ / __ \\/ / __ \\/ ___/\n\
-             / / / / / / / / / / / /_/ / /__  \n\
-            /_/ /_/ /_/_/_/ /_/_/_.___/\\___/  \n\
-                                              \n\
+                         _       _ __          \r\n\
+               ____ ___  (_)___  (_) /_  _____ \r\n\
+              / __ `__ \\/ / __ \\/ / __ \\/ ___/\r\n\
+             / / / / / / / / / / / /_/ / /__  \r\n\
+            /_/ /_/ /_/_/_/ /_/_/_.___/\\___/  \r\n\
+                                              \r\n\
 "
-
-/// Tokenize the input string to a list of strings
-/// @param in The input string
-/// @param len The length of the output list
-/// @return The list of strings
-/// @example split("1 + 2", &len) -> ["1", "+", "2"]
-/// @example split("1-2", &len) -> ["1", "-", "2"]
-/// @example split("1x2", &len) -> ["1", "x", "2"]
-/// @example split("1/2+3", &len) -> ["1", "/", "2", "+3"]
-/// @example split("+1-+2", &len) -> ["+1", "-", "+2"]
-/// @example split("exp(19, )") -> ["exp", "19"]
-/// @example split("exp(19, 2)") -> ["exp", "19", "2"]
-/// @example split("pow(2, -3)") -> ["pow", "2", "-3"]
-char** split(const char* in, int* len)
+void split(char* str, char* tokens[], int* token_len)
 {
-    if (!in || !len) return NULL;
-    
-    // Determine the maximum possible number of tokens (worst case: each character is a token)
-    int max_tokens = strlen(in) + 1;
-    char** tokens = (char**)malloc(max_tokens * sizeof(char*));
-    if (!tokens) return NULL;
-    
-    // Initialize token count
-    *len = 0;
-    
-    // Current position in the input string
-    int pos = 0;
-    int input_len = strlen(in);
-    
-    while (pos < input_len) {
-        // Skip whitespace
-        while (pos < input_len && isspace(in[pos])) {
-            pos++;
-        }
-        
-        if (pos >= input_len) break;
-        
-        // Handle function names (letters followed by opening parenthesis)
-        if (isalpha(in[pos])) {
-            int start = pos;
-            
-            // Read function name
-            while (pos < input_len && (isalnum(in[pos]) || in[pos] == '_')) {
-                pos++;
-            }
-            
-            // Check if this might be part of scientific notation (e.g., "1.23e+4")
-            if ((pos - start == 1) && (in[start] == 'e' || in[start] == 'E') && 
-                pos < input_len && (in[pos] == '+' || in[pos] == '-') &&
-                *len > 0) {
-                
-                // Look at previous token to see if it's a number
-                char* prev_token = tokens[*len - 1];
-                bool is_prev_number = false;
-                
-                // Check if previous token is a valid number
-                if (prev_token) {
-                    is_prev_number = true;
-                    for (int i = 0; prev_token[i]; i++) {
-                        if (!isdigit(prev_token[i]) && prev_token[i] != '.') {
-                            is_prev_number = false;
-                            break;
-                        }
-                    }
-                }
-                
-                if (is_prev_number) {
-                    // This is likely scientific notation
-                    // Remove the previous token (number)
-                    char* number_part = prev_token;
-                    (*len)--;
-                    
-                    // Start position for the full scientific notation
-                    start = pos - 1; // Include 'e' or 'E'
-                    pos++; // Skip over '+' or '-'
-                    
-                    // Continue reading the exponent part
-                    while (pos < input_len && isdigit(in[pos])) {
-                        pos++;
-                    }
-                    
-                    // Calculate length of scientific notation part
-                    int sci_len = pos - start;
-                    
-                    // Combine number part with scientific notation
-                    int number_len = strlen(number_part);
-                    char* sci_notation = (char*)malloc(number_len + sci_len + 1);
-                    
-                    if (!sci_notation) {
-                        // Cleanup on memory allocation failure
-                        free(number_part);
-                        for (int i = 0; i < *len; i++) {
-                            free(tokens[i]);
-                        }
-                        free(tokens);
-                        *len = 0;
-                        return NULL;
-                    }
-                    
-                    // Copy number part
-                    strcpy(sci_notation, number_part);
-                    
-                    // Append scientific notation part
-                    strncpy(sci_notation + number_len, in + start, sci_len);
-                    sci_notation[number_len + sci_len] = '\0';
-                    
-                    // Free the previous number part
-                    free(number_part);
-                    
-                    // Add the combined token
-                    tokens[(*len)++] = sci_notation;
-                    continue;
-                }
-            }
-            
-            // Extract the function name
-            int name_len = pos - start;
-            char* func_name = (char*)malloc(name_len + 1);
-            if (!func_name) {
-                // Cleanup on memory allocation failure
-                for (int i = 0; i < *len; i++) {
-                    free(tokens[i]);
-                }
-                free(tokens);
-                *len = 0;
-                return NULL;
-            }
-            
-            strncpy(func_name, in + start, name_len);
-            func_name[name_len] = '\0';
-            tokens[(*len)++] = func_name;
-            
-            // Skip whitespace after function name
-            while (pos < input_len && isspace(in[pos])) {
-                pos++;
-            }
-            
-            // Handle opening parenthesis after function name
-            if (pos < input_len && (in[pos] == '(' || in[pos] == ')')) {
-                pos++; // Skip the opening parenthesis
-            }
-            
-            continue;
-        }
-        
-        // Handle operators (+, -, *, /, etc.)
-        if (strchr("+-*/()^%,", in[pos])) {
-            // Special case: +/- as part of a number
-            if ((in[pos] == '+' || in[pos] == '-') && 
-                (pos == 0 || 
-                 strchr("+-*/^(,", in[pos-1]) || 
-                 isspace(in[pos-1]))) {
-                
-                // This +/- is likely part of a number, not a separate operator
-                int start = pos++;
-                
-                // Read the number
-                while (pos < input_len && (isdigit(in[pos]) || in[pos] == '.')) {
-                    pos++;
-                }
-                
-                // Check for scientific notation
-                if (pos < input_len && (in[pos] == 'e' || in[pos] == 'E')) {
-                    pos++; // Skip the 'e' or 'E'
-                    
-                    // Handle exponent sign if present
-                    if (pos < input_len && (in[pos] == '+' || in[pos] == '-')) {
-                        pos++;
-                    }
-                    
-                    // Read exponent digits
-                    while (pos < input_len && isdigit(in[pos])) {
-                        pos++;
-                    }
-                }
-                
-                // Extract the number with sign
-                int num_len = pos - start;
-                char* num_str = (char*)malloc(num_len + 1);
-                if (!num_str) {
-                    // Cleanup on memory allocation failure
-                    for (int i = 0; i < *len; i++) {
-                        free(tokens[i]);
-                    }
-                    free(tokens);
-                    *len = 0;
-                    return NULL;
-                }
-                
-                strncpy(num_str, in + start, num_len);
-                num_str[num_len] = '\0';
-                tokens[(*len)++] = num_str;
-            } else {
-                // This is a standalone operator
-                char* op = (char*)malloc(2);
-                if (!op) {
-                    // Cleanup on memory allocation failure
-                    for (int i = 0; i < *len; i++) {
-                        free(tokens[i]);
-                    }
-                    free(tokens);
-                    *len = 0;
-                    return NULL;
-                }
-                
-                op[0] = in[pos++];
-                op[1] = '\0';
-                tokens[(*len)++] = op;
-            }
-            
-            continue;
-        }
-        
-        // Handle numbers (including scientific notation)
-        if (isdigit(in[pos]) || in[pos] == '.') {
-            int start = pos;
-            
-            // Read the number
-            while (pos < input_len && (isdigit(in[pos]) || in[pos] == '.')) {
-                pos++;
-            }
-            
-            // Check for scientific notation
-            if (pos < input_len && (in[pos] == 'e' || in[pos] == 'E')) {
-                pos++; // Skip the 'e' or 'E'
-                
-                // Handle exponent sign if present
-                if (pos < input_len && (in[pos] == '+' || in[pos] == '-')) {
-                    pos++;
-                }
-                
-                // Read exponent digits
-                while (pos < input_len && isdigit(in[pos])) {
-                    pos++;
-                }
-            }
-            
-            // Extract the number
-            int num_len = pos - start;
-            char* num_str = (char*)malloc(num_len + 1);
-            if (!num_str) {
-                // Cleanup on memory allocation failure
-                for (int i = 0; i < *len; i++) {
-                    free(tokens[i]);
-                }
-                free(tokens);
-                *len = 0;
-                return NULL;
-            }
-            
-            strncpy(num_str, in + start, num_len);
-            num_str[num_len] = '\0';
-            tokens[(*len)++] = num_str;
-            
-            continue;
-        }
-        
-        // Unknown character - just skip it
-        pos++;
-    }
-    
-    // If no tokens were found, ensure at least one empty token is returned
-    if (*len == 0) {
-        tokens[0] = strdup("");
-        *len = 1;
-    }
-    
-    return tokens;
-}
-
-void start_interactive()
-{
-    fprintf(stdout, BANNER);
-    fprintf(stdout, "====== Interactive Mode (type \"quit\" or 'q' to leave) ======\n");
-
-    while (1)
+    char* p = str;
+    int i = 0;
+    while (*p != '\0')
     {
-        char str[INPUT_BUFFER];
-        fprintf(stdout, "> ");
-        fgets(str, INPUT_BUFFER, stdin);
-
-        if (str[0] == 'q')
-        {
-            break;
-        }
-
-        char* p = str;
         while (*p == ' ')
         {
             p++;
         }
 
+        if (*p == '\0')
+        {
+            break;
+        }
+
+        tokens[i++] = p;
+        while (*p != ' ' && *p != '\0')
+        {
+            p++;
+        }
+
+        if (*p == '\0')
+        {
+            break;
+        }
+
+        *p = '\0';
+        p++;
+    }
+
+    *token_len = i;
+}
+
+void start_interactive(int prec)
+{
+    enable_raw_mode();
+    atexit(disable_raw_mode);
+    fprintf(stdout, BANNER);
+    fprintf(stdout, "====== Interactive Mode (type \"quit\" or 'q' to leave) ======\r\n");
+
+    while (1)
+    {
+        
+        char* tokens[TOKEN_BUFFER];
+        int token_len = 0;
+        char* in = read_line("> ");
+
+        if (in == NULL || in[0] == 'q' )
+        {
+            free(in);
+            break;
+        }
+
+        if (strlen(in) == 0)
+        {
+            free(in);
+            continue;
+        } else {
+            add_to_history(in);
+        }
+
+        char* p = in;
+        while (*p == ' ')
+        {
+            p++;
+        }
+
+        char* nl = strchr(p, '\n');
+        if (nl != NULL)
+        {
+            *nl = '\0';
+        }
+
+        if (isalpha(*p))
+        {
+            // todo: handle math function
+            free(in);
+            fprintf(stdout, "Math function is not supported yet\r\n");
+            continue;
+        } else {
+            split(p, tokens, &token_len);
+        }
+
         char* num1, *num2;
         char op = '+';
-        int token_len = 0;
-        char** tokens = split(p, &token_len);
         // print tokens
         for (int i = 0; i < token_len; i++)
         {
-            printf("token[%d]: %s\n", i, tokens[i]);
+            printf("token[%d]: %s\r\n", i, tokens[i]);
         }
+        Exn res = NULL;
+
+        if (token_len >= 3)
+        {
+            num1 = tokens[0];
+            op = tokens[1][0];
+            num2 = tokens[2];
+            Exn n1 = atoExn(num1, prec);
+            Exn n2 = atoExn(num2, prec);       
+            switch (op)
+            {
+            case '+':
+                res = Exn_add(n1, n2);
+                break;
+            case '-':
+                res = Exn_sub(n1, n2);
+                break;
+            case '*':
+            case 'x':
+                res = Exn_mul(n1, n2);
+                break;
+            case '/':
+                res = Exn_div(n1, n2);
+                break;
+            default:
+                MATH_URECG_OP(op);
+                break;
+            }
+
+            printf("%s %c %s = ", num1, op, num2);
+
+            Exn_release(&n1);
+            Exn_release(&n2);
+        }
+        else {
+            // todo: function
+            printf("Invalid input\r\n");
+        }
+
+        if (res != NULL)
+        {
+            Exn_show(res);
+            char* fmt_res = NULL;
+            if (res->decimal > NORMAL_LIMIT)
+            {
+                fmt_res = Exn_fmt(res, EXN_FMT_SCIENTIFIC);
+            }
+            else
+            {
+                fmt_res = Exn_fmt(res, EXN_FMT_NORMAL);
+            }
+            printf("%s\r\n", fmt_res);
+            free(fmt_res);
+            Exn_release(&res);
+        }
+        free(in);
     }
+
+    fprintf(stdout, "=====================================================\r\n");
+    fprintf(stdout, "Free the memory and exit...\r\n");
+    fprintf(stdout, "=====================================================\r\n");
+    cleanup_history();
+    fprintf(stdout, "Bye!\r\n");
 }
 
 int main( int argc, char *argv[] )
 {
     int opt = 0;
     bool verbose = false, help = false, has_precision = false;
-    int precision = 2;
+    int precision = DEFALT_PRECISION;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -372,26 +223,26 @@ int main( int argc, char *argv[] )
         && (help == 0)
         && (argc - optind == 0);
 
-    if (use_interactive) start_interactive();
+    if (use_interactive) start_interactive(precision);
     else if (help)
     {
-        printf("Usage: %s operand1 operation operand2 [option1]\n", argv[0]);
-        printf("or: %s [option2]\n", argv[0]);
-        printf("Option1:\n");
-        printf("  -p <digit-int>, --precision\tSet the precision of the output\n");
-        printf("Option2:\n");
-        printf("  -h, --help\tDisplay this help message\n");
-        printf("  -v, --verbose\tDisplay the precision\n");
-        printf("  -p <digit-num>, --precision <digit-num>\tStart interactive mode with specified precision\n");
+        printf("Usage: %s operand1 operation operand2 [option1]\r\n", argv[0]);
+        printf("or: %s [option2]\r\n", argv[0]);
+        printf("Option1:\r\n");
+        printf("  -p <digit-int>, --precision\tSet the precision of the output\r\n");
+        printf("Option2:\r\n");
+        printf("  -h, --help\tDisplay this help message\r\n");
+        printf("  -v, --verbose\tDisplay the precision\r\n");
+        printf("  -p <digit-num>, --precision <digit-num>\tStart interactive mode with specified precision\r\n");
     }
     else if (verbose)
     {
-        printf("Precision: %d\n", precision);
+        printf("Precision: %d\r\n", precision);
     }
     else {
         for (int i = optind; i < argc; i++)
         {
-            printf("%s\n", argv[i]);
+            printf("%s\r\n", argv[i]);
         }
     }
 }

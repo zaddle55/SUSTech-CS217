@@ -1,10 +1,12 @@
 #include "error.h"
-#include <cstdlib>
 
 int main() {
 
     // test notice
     __NOTION("This is a notice message");
+
+    // test wavy
+    WAVY("This sentence will be marked from postion 5-10", 5, 5, ANSI_PURPLE);
     
     // test Math Exception from this line
     #ifdef MATH_EXCEPT_

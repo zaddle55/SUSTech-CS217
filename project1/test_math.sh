@@ -1,0 +1,1 @@
+gcc -O2 test_math.c math.c util.c -o math && ./math

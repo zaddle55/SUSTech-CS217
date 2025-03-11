@@ -1,11 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
-
-#define MAX_HISTORY 100
-#define MAX_INPUT_SIZE 1024
+#include "shell.h"
 
 char *history[MAX_HISTORY];
 int history_count = 0;
@@ -165,29 +158,30 @@ void cleanup_history() {
     }
 }
 
-int main() {
-    enable_raw_mode();
-    atexit(disable_raw_mode); // 确保在退出时恢复终端设置
+// int main() {
+//     /* example */
+//     enable_raw_mode();
+//     atexit(disable_raw_mode); // 确保在退出时恢复终端设置
     
-    printf("简易命令行 (Ctrl-D 退出)\n");
+//     printf("简易命令行 (Ctrl-D 退出)\r\n");
     
-    while (1) {
-        char *line = read_line("> ");
+//     while (1) {
+//         char *line = read_line("> ");
         
-        if (line == NULL) {
-            printf("\n再见!\n");
-            break;
-        }
+//         if (line == NULL) {
+//             printf("\r\n再见!\r\n");
+//             break;
+//         }
         
-        // 只有非空输入才添加到历史记录
-        if (strlen(line) > 0) {
-            add_to_history(line);
-            printf("您输入了: %s\n", line);
-        }
+//         // 只有非空输入才添加到历史记录
+//         if (strlen(line) > 0) {
+//             add_to_history(line);
+//             printf("您输入了: %s\r\n", line);
+//         }
         
-        free(line);
-    }
+//         free(line);
+//     }
     
-    cleanup_history();
-    return 0;
-}
+//     cleanup_history();
+//     return 0;
+// }

@@ -1,0 +1,2 @@
+pwd | grep p2 || cd /home/zaddle/code/CPP/lab03/p2 ; ls -a | grep inc || mkdir inc && cp ../p1/functions.h ./inc/functions.h ;  ls -a | grep src || mkdir src && cp ../p1/factorial.cpp ./src/factorial.cpp ;
+cp ../p1/printhello.cpp ./src/printhello.cpp ; cp ../p1/main.cpp ./src/main.cpp ; ls -a | grep build || mkdir build ; cp ../p1/Makefile ./Makefile; cd ..
