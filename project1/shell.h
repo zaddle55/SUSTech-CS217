@@ -10,7 +10,7 @@
 #include "util.h"
 
 #define MAX_HISTORY 100
-#define MAX_INPUT_SIZE 1024
+#define MAX_INPUT_SIZE 1024 * 1024
 
 /* function prototype */
 void enable_raw_mode();

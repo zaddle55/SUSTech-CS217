@@ -1,1 +1,1 @@
-gcc -O2 test_math.c math.c util.c -o math && ./math
+gcc ./test/test_math.c math.c util.c -o math -lm -O2 -g && valgrind -s --leak-check=full ./math

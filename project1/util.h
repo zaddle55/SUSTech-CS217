@@ -23,7 +23,6 @@ static int test_count = 0;
 
 void register_test(void (*test_func)(void), const char *name);
 
-
 /**
  * @brief Auxiliary macro to register a test
  * @param test_name The name of the test

@@ -244,5 +244,60 @@ int main( int argc, char *argv[] )
         {
             printf("%s\r\n", argv[i]);
         }
+
+        if (argc >= 3)
+        {
+            char* num1 = argv[optind];
+            char op = argv[optind + 1][0];
+            char* num2 = argv[optind + 2];
+            Exn n1 = atoExn(num1, precision);
+            Exn n2 = atoExn(num2, precision);
+            Exn res = NULL;
+            switch (op)
+            {
+            case '+':
+                res = Exn_add(n1, n2);
+                break;
+            case '-':
+                res = Exn_sub(n1, n2);
+                break;
+            case '*':
+            case 'x':
+                res = Exn_mul(n1, n2);
+                break;
+            case '/':
+                res = Exn_div(n1, n2);
+                break;
+            default:
+                MATH_URECG_OP(op);
+                break;
+            }
+
+            printf("%s %c %s = ", num1, op, num2);
+
+            Exn_release(&n1);
+            Exn_release(&n2);
+
+            if (res != NULL)
+            {
+                Exn_show(res);
+                char* fmt_res = NULL;
+                if (res->decimal > NORMAL_LIMIT)
+                {
+                    fmt_res = Exn_fmt(res, EXN_FMT_SCIENTIFIC);
+                }
+                else
+                {
+                    fmt_res = Exn_fmt(res, EXN_FMT_NORMAL);
+                }
+                printf("%s\r\n", fmt_res);
+                free(fmt_res);
+                Exn_release(&res);
+            }
+            else
+            {
+                printf("Invalid input\r\n");
+            }
+        }
     }
 }

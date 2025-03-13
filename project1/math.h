@@ -13,6 +13,7 @@ extern "C" {
 #include <ctype.h>
 #include <complex.h>
 #include <assert.h>
+#include <math.h>
 
 #include "util.h"
 #include "error.h"
@@ -26,8 +27,9 @@ extern "C" {
 // ############################## Extended Number Class ##############################
 
 /* constants for ExtendedNum class */
-#define MAX_DIGITS 10000
-#define DECIMAL_PLACES 100
+#define MAX_DIGITS 10000 //! TODO： remove this
+#define MUL_OPTIMIZE_LEAST 1000 /* The least number of digits to use the optimized multiplication */
+#define EXN_EPSILON 1e-16
 
 /* error codes for ExntendedNum class */
 typedef enum {
@@ -131,14 +133,6 @@ bool Exn_iszero( const Exn num );
 bool Exn_isneg( const Exn num );
 
 /**
- * @brief Get the negative value of the extended number
- * @param num The extended number
- * @return Exn The negative value of the extended number
- * @note The caller is responsible for releasing the memory
- */
-Exn Exn_neg( const Exn num );
-
-/**
  * @brief Add two extended numbers
  * @param num1 The first addend
  * @param num2 The second addend
@@ -187,6 +181,18 @@ Exn Exn_divmod( const Exn num1, const Exn num2, Exn* mod );
 Exn Exn_modulo( const Exn num1, const Exn num2 );
 Exn Exn_sqrt( const Exn num );
 
+void Exn_round( Exn* num, int scale, int type);
+
+/**
+ * @brief Calculate the factorial of a number
+ * @param n The number to calculate the factorial
+ * @return Exn The result of the factorial
+ * @note The caller is responsible for releasing the memory
+ * @attention The number must be a non-negative integer
+ * @details Divide and conquer algorithm is used to calculate the factorial
+ */
+Exn fact(int n);
+
 /**
  * @brief Power of an extended number
  * @details Library function ksm() is used to calculate the power of an extended number;
@@ -198,8 +204,35 @@ Exn Exn_sqrt( const Exn num );
  * @note The exponent must be an integer ranged
  */
 Exn ksm( const Exn base, const int exp );
+
+/**
+ * @brief Compare two extended numbers
+ * @param num1 The first number
+ * @param num2 The second number
+ * @return int The result of the comparison
+ * @retval 0 if the two numbers are equal
+ * @retval 1 if num1 > num2
+ * @retval -1 if num1 < num2
+ */
 int Exn_cmp( const Exn num1, const Exn num2 );
-void Exn_normalize( Exn num );
+
+/**
+ * @brief convert the extended number to an integer
+ * @param num The extended number
+ * @return int The integer value of the extended number
+ * @note This function will truncate the decimal part of the number
+ *       and won't handle the overflow
+ */
+int Exn_toInt( const Exn num );
+/**
+ * @brief Normalize the extended number
+ * @param num The extended number
+ * @note This function will modify the extended number
+ * @details This function will remove the leading zeros and trailing zeros
+ *          and adjust the decimal point accordingly
+ *          The function will also check the precision of the number
+ */
+void Exn_normalize( Exn *num );
 
 /**
  * @brief Format the extended number to a string
@@ -220,6 +253,12 @@ char* Exn_fmt( const Exn num, Exnfmt mode );
  */
 void Exn_show( const Exn num );
 
+//! Delete later
+Exn __Exn_mul_fft( const Exn num1, const Exn num2, int len, int sign );
+Exn __Exn_mul_karatsuba( const Exn num1, const Exn num2, int len, int sign );
+Exn __Exn_mul_pl( const Exn num1, const Exn num2, int len, int sign );
+//! Delete later
+
 // ############################## BinOprExpr Class ##############################
 
 /// @brief Binary operand expression class
@@ -229,15 +268,23 @@ typedef struct {
     Exn num2; // number 2
 } BinOprExpr;
 
+Exn BinOprExpr_eval(const BinOprExpr* expr);
+void BinOprExpr_release(BinOprExpr** expr);
+void BinOprExpr_build(BinOprExpr* binop, char op, Exn num1, Exn num2);
+
 // ############################## Math Func Class ##############################
+
+#define POW_LIMIT 0x0000ffff  /* upper limit of the power */
+#define FACT_LIMIT 0x0000ffff /* upper limit of the factorial */
 
 /// @brief Math function type
 /// @details This enum is used to represent the built-in math function type
 typedef enum {
     MFUNC_SQRT = 0,
     MFUNC_POWER,
-    MFUNC_EXP,
-    MFUNC_LOG,
+    MFUNC_DIVMOD,
+    MFUNC_MODULO,
+    MFUNC_FACT,
     MFUNC_ALL
 } MathFunc_T;
 
@@ -254,6 +301,39 @@ typedef struct {
 /// @return true if the arguments are correct, false otherwise
 /// @attention please add the argument rules here for each math function
 bool MFunc_ckarg(const MathFunc* func);
+
+Exn MFunc_eval(const MathFunc* func);
+void MFunc_release(MathFunc** func);
+void MFunc_build(MathFunc* func, int type, const char* alias, uint8_t argc, Exn* args);
+
+// ############################## Math Expr Class ##############################
+typedef enum {
+    MATH_EXPR_BINOP = 0,
+    MATH_EXPR_FUNC,
+    MATH_EXPR_ECHO
+} MExprType;
+
+/// @brief Math expression class
+typedef struct {
+    MExprType type; // type of the expression
+    union {
+        BinOprExpr* binop; // binary operand expression
+        MathFunc* func; // math function
+        Exn echo; // echo expression
+    } expr; // expression
+} MathExpr;
+
+/// @brief Evaluate the math expression
+/// @param expr Math expression to evaluate
+/// @return Exn The result of the evaluation
+/// @note The caller is responsible for releasing the memory
+Exn MathExpr_eval(const MathExpr* expr);
+
+/// @brief Release the memory of the math expression
+void MathExpr_release(MathExpr* expr);
+
+/// @brief Create a math expression
+int MathExpr_build(char* expr_str, MathExpr* expr, int prec);
 
 #ifdef __cplusplus
 }

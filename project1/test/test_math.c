@@ -137,16 +137,16 @@ TEST(normalize_basic)
     Exn_release(&num3);
 }
 
-// TEST(fromstring_zeros)
-// {
-//     Exn num = atoExn("0.000000", 10);
-//     if (num == NULL) {
-//         fprintf(stderr, "Failed to convert string to extended number\n");
-//         return;
-//     }
-//     Exn_show(num);
-//     Exn_release(&num);
-// }
+TEST(fromstring_zeros)
+{
+    Exn num = atoExn("0.000000", 10);
+    if (num == NULL) {
+        fprintf(stderr, "Failed to convert string to extended number\n");
+        return;
+    }
+    Exn_show(num);
+    Exn_release(&num);
+}
 
 
 TEST(fmt_comprehensive)
@@ -268,22 +268,150 @@ TEST(release_nullptr)
     assert(num == NULL);
 }
 
-TEST(mul_rand_speed)
+// TEST(mul_fft_basic)
+// {
+//     Exn num1 = atoExn("123456", 100);
+//     Exn num2 = atoExn("654321", 100);
+//     Exn num3 = Exn_mul(num1, num2);
+//     char* num3_s = Exn_fmt(num3, EXN_FMT_NORMAL);
+//     Exn_show(num3);
+//     fprintf(stdout, "Formatted number: %s\n", num3_s);
+//     assert(strcmp(num3_s, "80779853376") == 0);
+//     free(num3_s);
+//     Exn_release(&num1);
+//     Exn_release(&num2);
+//     Exn_release(&num3);
+// }
+
+// TEST(mul_fft_sci)
+// {
+//     Exn num1 = atoExn("123456E2", 100);
+//     Exn num2 = atoExn("6.54321E-4", 100);
+//     Exn num3 = Exn_mul(num1, num2);
+//     char* num3_s = Exn_fmt(num3, EXN_FMT_SCIENTIFIC);
+//     Exn_show(num3);
+//     fprintf(stdout, "Formatted number: %s\n", num3_s);
+//     assert(strcmp(num3_s, "8.0779853376E3") == 0);
+//     free(num3_s);
+//     Exn_release(&num1);
+//     Exn_release(&num2);
+//     Exn_release(&num3);
+// }
+
+// TEST(mul_fft_no_carry)
+// {
+//     Exn num1 = atoExn("123456", 100);
+//     Exn num2 = atoExn("111111", 100);
+//     Exn num3 = Exn_mul(num1, num2);
+//     char* num3_s = Exn_fmt(num3, EXN_FMT_NORMAL);
+//     Exn_show(num3);
+//     fprintf(stdout, "Formatted number: %s\n", num3_s);
+//     assert(strcmp(num3_s, "13717319616") == 0);
+//     free(num3_s);
+//     Exn_release(&num1);
+//     Exn_release(&num2);
+//     Exn_release(&num3);
+// }
+
+TEST(karatsuba_basic)
 {
-    Exn num1 = Exn_rand(1000);
-    Exn num2 = Exn_rand(1000);
-    TIME_START
+    Exn num1 = atoExn("12345", 100);
+    Exn num2 = atoExn("65432", 100);
     Exn num3 = Exn_mul(num1, num2);
-    TIME_END
+    char* num3_s = Exn_fmt(num3, EXN_FMT_NORMAL);
+    Exn_show(num3);
+    fprintf(stdout, "Formatted number: %s\n", num3_s);
+    // assert(strcmp(num3_s, "80779853376") == 0);
+    free(num3_s);
     Exn_release(&num1);
     Exn_release(&num2);
     Exn_release(&num3);
 }
 
+// TEST(mul_rand_speed)
+// {
+//     Exn num1 = Exn_rand(100000);
+//     Exn num2 = Exn_rand(100000);
+//     TIME_START
+//     Exn num3 = Exn_mul(num1, num2);
+//     TIME_END
+//     Exn_release(&num1);
+//     Exn_release(&num2);
+//     Exn_release(&num3);
+// }
+
+TEST(binopexpr_build)
+{
+    Exn num1 = atoExn("123456", 100);
+    Exn num2 = atoExn("654321", 100);
+    BinOprExpr expr;
+    BinOprExpr_build(&expr, '/', num1, num2);
+    printf("num1: ");
+    Exn_show(expr.num1);
+    printf("num2: ");
+    Exn_show(expr.num2);
+    printf("op: %c\n", expr.binop);
+    // clean
+    Exn_release(&num1);
+    Exn_release(&num2);
+}
+
+TEST(binop_expr_parse)
+{
+    char in[] = "123456 + 654321";
+    MathExpr expr;
+    MathExpr_build(in, &expr, 100);
+    BinOprExpr* bin_op = (BinOprExpr*)expr.expr.binop;
+    printf("num1: ");
+    Exn_show(bin_op->num1);
+    printf("num2: ");
+    Exn_show(bin_op->num2);
+    // clean
+    MathExpr* ptr = &expr;
+    MathExpr_release(ptr);
+}
+
+TEST(func_expr_parse)
+{
+    char in[] = "fact(123456E19, 16)";
+    MathExpr expr;
+    if (MathExpr_build(in, &expr, 100) == 0){
+    MathFunc* func = (MathFunc*)expr.expr.func;
+    printf("func: %s\n", func->alias);
+    printf("argc: %d\n", func->argc);
+    printf("num1: ");
+    Exn_show(func->args[1]);}
+    // clean
+    MathExpr* ptr = &expr;
+    MathExpr_release(ptr);
+}
+
+TEST(expr_eval)
+{
+    char in[] = "3.24 / 4.56";
+    MathExpr expr;
+    if (MathExpr_build(in, &expr, 100) == 0) {
+        Exn res = MathExpr_eval(&expr);
+        if (res != NULL) {
+            Exn_show(res);
+            char* res_s = Exn_fmt(res, EXN_FMT_NORMAL);
+            printf("Formatted number: %s\n", res_s);
+            free(res_s);
+            Exn_release(&res);
+        } else {
+            fprintf(stderr, "Failed to evaluate expression\n");
+        }
+        MathExpr_release(&expr);
+    }
+    else {
+        fprintf(stderr, "Failed to build expression\n");
+    }
+}
+
 TEST(div_basic)
 {
-    Exn divend = atoExn("2", 100);
-    Exn div = atoExn("3", 100);
+    Exn divend = atoExn("25565", 100);
+    Exn div = atoExn("2", 100);
     Exn div_res = Exn_div(divend, div);
     Exn_show(div_res);
     char* div_res_s = Exn_fmt(div_res, EXN_FMT_NORMAL);
@@ -310,6 +438,64 @@ TEST(div_basic)
 //     Exn_release(&num2);
 
 // }
+
+TEST(divmod_basic)
+{
+    Exn divend = atoExn("99", 100);
+    Exn div = atoExn("3", 100);
+    Exn mod = NULL;
+    Exn div_res = Exn_divmod(divend, div, &mod);
+    Exn_show(div_res);
+    char* div_res_s = Exn_fmt(div_res, EXN_FMT_NORMAL);
+    printf("Formatted number: %s\n", div_res_s);
+    Exn_show(mod);
+    char* mod_s = Exn_fmt(mod, EXN_FMT_NORMAL);
+    printf("Formatted number: %s\n", mod_s);
+
+    Exn_release(&divend);
+    Exn_release(&div);
+    Exn_release(&div_res);
+    Exn_release(&mod);
+
+    free(div_res_s);
+    free(mod_s);
+}
+
+TEST(sqrt_basic)
+{
+    Exn num = atoExn("2", 100);
+    Exn sqrt_res = Exn_sqrt(num);
+    Exn_show(sqrt_res);
+    char* sqrt_res_s = Exn_fmt(sqrt_res, EXN_FMT_NORMAL);
+    printf("Formatted number: %s\n", sqrt_res_s);
+
+    Exn_release(&num);
+    Exn_release(&sqrt_res);
+
+    free(sqrt_res_s);
+}
+
+TEST(ksm_basic) {
+    Exn num = atoExn("2", 1000);
+    Exn ksm_res = ksm(num, 104);
+    Exn_show(ksm_res);
+    char* ksm_res_s = Exn_fmt(ksm_res, EXN_FMT_NORMAL);
+    printf("Formatted number: %s\n", ksm_res_s);
+
+    Exn_release(&num);
+    Exn_release(&ksm_res);
+
+    free(ksm_res_s);
+}
+
+TEST(ksm_speed) {
+    Exn num = atoExn("2", 100000000);
+    TIME_START
+    Exn ksm_res = ksm(num, 1000000);
+    TIME_END
+    Exn_release(&num);
+    Exn_release(&ksm_res);
+}
 
 int main()
 {
