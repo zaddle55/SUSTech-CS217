@@ -11,9 +11,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -lm")
 LINK_LIBRARIES(m)
 
 # add auxiliary files
-file(GLOB DIR_SRCS
-    "*.c"
-    "*.h"
-)
+aux_source_directory(./src DIR_SRCS)
+
+# add test files
+aux_source_directory(./test DIR_TEST_SRCS)
+
 # add executable
 add_executable(minibc ${DIR_SRCS})

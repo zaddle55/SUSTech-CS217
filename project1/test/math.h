@@ -3,26 +3,32 @@
 
 /* for cplusplus function call  */
 #ifdef __cplusplus
+#include <complex>
+typedef std::complex<double> complex;
+#define I std::complex<double>(0, 1)
+#define creal std::real
+#define cimag std::imag
 extern "C" {
+#else
+#include <complex.h>
 #endif
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <complex.h>
 #include <assert.h>
+
 #include <math.h>
 
-#include "util.h"
 #include "error.h"
 
 /* A macro to return the value of a digit character */
 #define Ch2val(c) (c - '0')
-#ifndef complex
-#define complex _Complex double
-#endif
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // ############################## Extended Number Class ##############################
 
@@ -258,82 +264,6 @@ Exn __Exn_mul_fft( const Exn num1, const Exn num2, int len, int sign );
 Exn __Exn_mul_karatsuba( const Exn num1, const Exn num2, int len, int sign );
 Exn __Exn_mul_pl( const Exn num1, const Exn num2, int len, int sign );
 //! Delete later
-
-// ############################## BinOprExpr Class ##############################
-
-/// @brief Binary operand expression class
-typedef struct { 
-    char binop; // binary operator
-    Exn num1; // number 1
-    Exn num2; // number 2
-} BinOprExpr;
-
-Exn BinOprExpr_eval(const BinOprExpr* expr);
-void BinOprExpr_release(BinOprExpr** expr);
-void BinOprExpr_build(BinOprExpr* binop, char op, Exn num1, Exn num2);
-
-// ############################## Math Func Class ##############################
-
-#define POW_LIMIT 0x0000ffff  /* upper limit of the power */
-#define FACT_LIMIT 0x0000ffff /* upper limit of the factorial */
-
-/// @brief Math function type
-/// @details This enum is used to represent the built-in math function type
-typedef enum {
-    MFUNC_SQRT = 0,
-    MFUNC_POWER,
-    MFUNC_DIVMOD,
-    MFUNC_MODULO,
-    MFUNC_FACT,
-    MFUNC_ALL
-} MathFunc_T;
-
-/// @brief Math function class
-typedef struct {
-    int type; // math
-    char* alias; // alias of the function
-    uint8_t argc; // number of arguments
-    Exn* args; // arguments
-} MathFunc;
-
-/// @brief Check the arguments for different math functions
-/// @param func Math function to check
-/// @return true if the arguments are correct, false otherwise
-/// @attention please add the argument rules here for each math function
-bool MFunc_ckarg(const MathFunc* func);
-
-Exn MFunc_eval(const MathFunc* func);
-void MFunc_release(MathFunc** func);
-void MFunc_build(MathFunc* func, int type, const char* alias, uint8_t argc, Exn* args);
-
-// ############################## Math Expr Class ##############################
-typedef enum {
-    MATH_EXPR_BINOP = 0,
-    MATH_EXPR_FUNC,
-    MATH_EXPR_ECHO
-} MExprType;
-
-/// @brief Math expression class
-typedef struct {
-    MExprType type; // type of the expression
-    union {
-        BinOprExpr* binop; // binary operand expression
-        MathFunc* func; // math function
-        Exn echo; // echo expression
-    } expr; // expression
-} MathExpr;
-
-/// @brief Evaluate the math expression
-/// @param expr Math expression to evaluate
-/// @return Exn The result of the evaluation
-/// @note The caller is responsible for releasing the memory
-Exn MathExpr_eval(const MathExpr* expr);
-
-/// @brief Release the memory of the math expression
-void MathExpr_release(MathExpr* expr);
-
-/// @brief Create a math expression
-int MathExpr_build(char* expr_str, MathExpr* expr, int prec);
 
 #ifdef __cplusplus
 }

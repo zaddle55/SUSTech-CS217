@@ -137,6 +137,20 @@ char* read_line(const char *prompt) {
                         refresh_line(prompt, buffer);
                     }
                 }
+                // else if (seq[1] == 'C') { // 右箭头
+                //     if (position < MAX_INPUT_SIZE - 1) {
+                //         position++;
+                //         printf("\033[C"); // 光标右移
+                //         fflush(stdout);
+                //     }      
+                // } else if (seq[1] == 'D') { // 左箭头
+                //     if (position > 0) {
+                //         position--;
+                //         printf("\033[D"); // 光标左移
+                //         fflush(stdout);
+                //     }
+                    
+                // }
             }
         } 
         // 处理常规输入

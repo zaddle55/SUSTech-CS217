@@ -2,6 +2,7 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 #include <stdio.h>
+
 #define bool unsigned char
 #define true (unsigned char)1
 #define false (unsigned char)0
@@ -41,9 +42,6 @@ void register_test(void (*test_func)(void), const char *name);
     static void test_##test_name(void)
 
 void run_all_tests(void);
-
-void run_all_tests(void);
-
 
 // ############################## Scope Manage Macro ##############################
 #define NO_EXPORT __attribute__((visibility("hidden")))

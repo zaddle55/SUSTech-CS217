@@ -260,6 +260,39 @@ void fft(complex *fa, int n, int inv) {
   }
 }
 
+int *karatsuba(int n, int *a, int *b) {
+  if (n <= 32) {
+    int *r = (int *)calloc(n * 2 + 1, sizeof(int));
+    for (int i = 0; i <= n; ++i)
+      for (int j = 0; j <= n; ++j) r[i + j] += a[i] * b[j];
+    return r;
+  }
+
+  int m = n / 2 + 1;
+  int *r = (int *)calloc(m * 4 + 1, sizeof(int));
+  int *z0, *z1, *z2;
+
+  z0 = karatsuba(m - 1, a, b);
+  z2 = karatsuba(n - m, a + m, b + m);
+
+  for (int i = 0; i + m <= n; ++i) a[i] += a[i + m];
+  for (int i = 0; i + m <= n; ++i) b[i] += b[i + m];
+  z1 = karatsuba(m - 1, a, b);
+  for (int i = 0; i + m <= n; ++i) a[i] -= a[i + m];
+  for (int i = 0; i + m <= n; ++i) b[i] -= b[i + m];
+  for (int i = 0; i <= (m - 1) * 2; ++i) z1[i] -= z0[i];
+  for (int i = 0; i <= (n - m) * 2; ++i) z1[i] -= z2[i];
+
+  for (int i = 0; i <= (m - 1) * 2; ++i) r[i] += z0[i];
+  for (int i = 0; i <= (m - 1) * 2; ++i) r[i + m] += z1[i];
+  for (int i = 0; i <= (n - m) * 2; ++i) r[i + m * 2] += z2[i];
+
+  free(z0);
+  free(z1);
+  free(z2);
+  return r;
+}
+
 // ################################ Extended Number Member Functions
 // ##############################
 
@@ -296,7 +329,7 @@ Exn Exn_rand(int prec) {
   if (num == NULL)
     return NULL;
 
-  int len = rand() % (prec + 1);
+  int len = rand() % (prec + 1) + 1; // at least 1 digit
   num->length = len;
   num->decimal = rand() % (len + 1);
   num->sign = rand() % 2 ? 1 : -1;
@@ -314,7 +347,7 @@ Exn Exn_randp(int prec, int exp) {
   if (num == NULL)
     return NULL;
 
-  int len = rand() % (prec + 1);
+  int len = rand() % (prec + 1) + 1; // at least 1 digit
   num->length = len;
   num->decimal = exp;
   num->sign = rand() % 2 ? 1 : -1;
@@ -548,8 +581,8 @@ void Exn_normalize(Exn *num) {
 
   /* is zero */
   if (first_non_zero == (*num)->length) {
-    Exn_cpy(num, Exn_zero);
-    printf("The number is zero\r\n");
+    // Exn_cpy(num, Exn_zero);
+    // printf("The number is zero\r\n");
     return;
   }
 
@@ -812,6 +845,7 @@ NO_EXPORT char *__Exn_fmts(Exn num) {
 char *Exn_fmt(Exn num, Exnfmt mode) {
   if (num == NULL)
     return NULL;
+  Exn_normalize(&num);
   switch (mode) {
   case EXN_FMT_NORMAL:
     return __Exn_fmtn(num);
@@ -1123,91 +1157,62 @@ Exn __Exn_mul_karatsuba(const Exn num1, const Exn num2, int len, int sign) {
    *
    * AD + BC = (A + B)(C + D) - AC - BD
    *
-   * 4 recursive calls
-   */
+   *      4 recursive calls       */
 
-  int n = MAX(num1->length, num2->length); /* get the length */
-
-  if (n < 32) { /* base case */
-    result = __Exn_mul_pl(num1, num2, len, sign);
-    return result;
+   int n = MAX(num1->length, num2->length);
+   result = Exn_create(len);
+  if (result == NULL) {
+    MEM_ALLOC_FAIL(&result, "The extended number allocation failed");
+    return NULL;
   }
 
-  int half = (n + 1) / 2; /* divide the number */
+  int* a = (int*)malloc(sizeof(int) * n);
+  int* b = (int*)malloc(sizeof(int) * n);
 
-  /*divide the number */
-  Exn A = Exn_create(len);
-  Exn B = Exn_create(len);
-  Exn C = Exn_create(len);
-  Exn D = Exn_create(len);
-
-  for (int i = 0; i < half; i++) {
-    char digit1 = (i < num1->length) ? num1->digits[i] : 0;
-    char digit2 = (i < num2->length) ? num2->digits[i] : 0;
-    A->digits[i] = digit1;
-    C->digits[i] = digit2;
+  /* inverse the number */
+  for (int i = 0; i < num1->length; i++) {
+    a[i] = Ch2val(num1->digits[num1->length - 1 - i]);
   }
-  for (int i = half; i < n; i++) {
-    char digit1 = (i < num1->length) ? num1->digits[i] : 0;
-    char digit2 = (i < num2->length) ? num2->digits[i] : 0;
-    B->digits[i - half] = digit1;
-    D->digits[i - half] = digit2;
+  for (int i = 0; i < num2->length; i++) {
+    b[i] = Ch2val(num2->digits[num2->length - 1 - i]);
   }
 
-  A->length = half;
-  A->sign = num1->sign;
-  B->length = n - half;
-  B->sign = num1->sign;
-  C->length = half;
-  C->sign = num2->sign;
-  D->length = n - half;
-  D->sign = num2->sign;
+  int* r = karatsuba(n - 1, a, b);
+  
+  int car = 0;
+  for (int i = 0; i < 2 * n - 1; i++) {
+    int sum = r[i] + car;
+    r[i] = sum % 10;
+    car = sum / 10;
+    if (r[i] == 0 && car == 0) {
+      result->length = i;
+      break;
+    } else {
+      result->length = i + 1;
+    }
+  }
 
-  // Exn_show(A);
-  // Exn_show(B);
-  // Exn_show(C);
-  // Exn_show(D);
+  int i = 0;
+  if (car > 0) {
+    result->digits[i] = car + '0';
+    i++;
+  }
 
-  Exn tmp1 = __Exn_mul_karatsuba(A, C, len, sign);
-  // Exn_show(tmp1);
-  Exn tmp2 = __Exn_mul_karatsuba(B, D, len, sign);
-  // Exn_show(tmp2);
-  Exn tmp3 = __Exn_addu(A, B);
-  // Exn_show(tmp3);
-  Exn tmp4 = __Exn_addu(C, D);
-  // Exn_show(tmp4);
-  Exn tmp5 = __Exn_mul_karatsuba(tmp3, tmp4, len, sign);
-  // Exn_show(tmp5);
-  Exn tmp6 = Exn_sub(tmp5, tmp1);
-  Exn_release(&A);
-  Exn_release(&B);
-  Exn_release(&C);
-  Exn_release(&D);
+  /* inverse the result */
+  for (int j = result->length - 1; j >= 0; j--) {
+    result->digits[i] = r[j] + '0';
+    i++;
+  }
 
-  Exn tmp7 = __Exn_subu(tmp6, tmp2);
-  tmp1->decimal += 2 * half;
-  tmp7->decimal += half;
-  tmp7->sign = tmp6->sign;
-  // Exn_show(tmp1);
-  // Exn_show(tmp7);
-
-  // Exn_show(tmp7);
-  Exn tmp8 = __Exn_addu(tmp1, tmp7);
-  tmp8->sign = tmp1->sign;
-  // Exn_show(tmp8);
-  result = __Exn_addu(tmp8, tmp2);
+  // Exn_show(result); //?
+  
+  free(a);
+  free(b);
+  free(r);  
   result->sign = sign;
-  result->decimal = num1->decimal + num2->decimal;
+  result->decimal = num1->decimal + num2->decimal - (len != result->length);
   result->precision = MAX(num1->precision, num2->precision);
-  Exn_release(&tmp1);
-  Exn_release(&tmp2);
-  Exn_release(&tmp3);
-  Exn_release(&tmp4);
-  Exn_release(&tmp5);
-  Exn_release(&tmp6);
-  Exn_release(&tmp7);
-  Exn_release(&tmp8);
-  Exn_normalize(&result);
+
   return result;
 }
 
@@ -1336,6 +1341,8 @@ Exn Exn_mul(const Exn num1, const Exn num2) {
   }
   if (num1->error != EXTENDED_NUM_OK || num2->error != EXTENDED_NUM_OK) {
     INPUT_ARG_FAIL("operand", "The operand has an error");
+    printf("num1: %s\r\n", Exn_err2str(num1->error));
+    printf("num2: %s\r\n", Exn_err2str(num2->error));
     return NULL;
   }
   int sign = num1->sign * num2->sign;
@@ -1478,7 +1485,7 @@ Exn Exn_sqrt(const Exn num) {
   result = Exn_shift(Exn_one, shift);
   Exn_newton(__ntiter_sqrt, bound, num, &result);
   Exn_round(&result, len, -1);
-  Exn_show(result); //?
+  // Exn_show(result); //?
   
   /* invert \frac{1}{\sqrt{x}} */
   Exn inv = Exn_shift(Exn_one, -result->decimal);
@@ -1500,14 +1507,18 @@ Exn fact( int n ) {
     }
 
     result->digits[0] = '1';
+    result->sign = 1;
+    result->length = 1;
+    result->decimal = 1;
+    Exn cnt = Exn_shift(Exn_one, 0);
 
-    for (int i = 2; i < n; i++) {
-        Exn add = Exn_add(result, Exn_one);
+    for (int i = 1; i < n; i++) {
+        Exn add = Exn_add(cnt, Exn_one);
         Exn tmp = Exn_mul(result, add);
         Exn_mv(&result, &tmp);
-        result->decimal += 1;
+        Exn_mv(&cnt, &add);
     }
-
+    Exn_release(&cnt);
     return result;
 }
 
@@ -1535,7 +1546,6 @@ Exn ksm(Exn num, int exp) {
 }
 
 void Exn_newton(Exn (*func)(Exn, Exn), int bound, Exn param, Exn *result) {
-  printf("bound: %d\r\n", bound); //?
   while ((*result)->length < bound) {
     Exn temp = func(param, *result);
     if (!temp || temp->error != EXTENDED_NUM_OK) {
@@ -1561,12 +1571,12 @@ int Exn_toInt(const Exn num) {
     result = 0;
   } else {
     int dec = num->decimal - 1;
-    for (int i = 0; i < num->length && dec < 0; i++) {
+    for (int i = 0; i < num->length && dec >= 0; i++) {
         result += Ch2val(num->digits[i]) * pow(10, dec);
         dec--;
     }
   }
-  return result;
+  return result * num->sign;
 }
 
 int Exn_cmp(const Exn num1, const Exn num2) {
@@ -1646,6 +1656,16 @@ bool MFunc_ckarg(const MathFunc *func) {
       return false;
     }
     break;
+  case MFUNC_DIVMOD:
+    if (func->argc != 2) {
+      FUNCT_ARG_MISMATCH(func_n, 2, func->argc);
+      return false;
+    }
+    if (Exn_iszero(func->args[1])) {
+      MATH_DIV_ZERO("The divisor can't be zero");
+      return false;
+    }
+    break;
   case MFUNC_MODULO:
     if (func->argc != 2) {
       FUNCT_ARG_MISMATCH(func_n, 2, func->argc);
@@ -1679,8 +1699,10 @@ Exn MFunc_eval(const MathFunc* func) {
   case MFUNC_MODULO:
     result = Exn_modulo(func->args[0], func->args[1]);
     break;
-  default:
-    FUNCT_INVOKE_FAIL(func->alias, "no such math function");
+  case MFUNC_DIVMOD:
+    Exn mod = NULL;
+    result = Exn_divmod(func->args[0], func->args[1], &mod);
+    Exn_release(&mod);
     break;
   }
   return result;
@@ -1710,7 +1732,7 @@ void MFunc_release(MathFunc **func) {
   }
   free((*func)->alias);
     for (int i = 0; i < (*func)->argc; i++) {
-        Exn_release(&(*func)->args[i]);
+        Exn_release(&((*func)->args[i]));
     }
     free((*func)->args);
   free(*func);
@@ -1809,7 +1831,7 @@ int MathExpr_build(char *expr, MathExpr *math_expr, int prec) {
   }
 
   /* BinOpExpr case */
-  if (token_len >= 3) {
+  if (token_len >= 3 && !isfunc) {
     Exn opr1 = atoExn(tokens[0], prec);
     Exn opr2 = atoExn(tokens[2], prec);
     if (opr1 == NULL || opr1->error != EXTENDED_NUM_OK) {
@@ -2003,9 +2025,9 @@ int MathExpr_build(char *expr, MathExpr *math_expr, int prec) {
       func_type = MFUNC_SQRT;
     } else if (strcmp(func_name, "power") == 0) {
       func_type = MFUNC_POWER;
-    } else if (strcmp(func_name, "divmod") == 0) {
+    } else if (strcmp(func_name, "div") == 0) {
       func_type = MFUNC_DIVMOD;
-    } else if (strcmp(func_name, "modulo") == 0) {
+    } else if (strcmp(func_name, "mod") == 0) {
       func_type = MFUNC_MODULO;
     } else if (strcmp(func_name, "fact") == 0) {
       func_type = MFUNC_FACT;
@@ -2060,8 +2082,8 @@ Exn MathExpr_eval(const MathExpr *expr) {
   case MATH_EXPR_FUNC:
     result = MFunc_eval(expr->expr.func);
     break;
-  default:
-    break;
+    default:
+      break;
   }
   return result;
 }

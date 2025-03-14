@@ -17,39 +17,6 @@
             /_/ /_/ /_/_/_/ /_/_/_.___/\\___/  \r\n\
                                               \r\n\
 "
-void split(char* str, char* tokens[], int* token_len)
-{
-    char* p = str;
-    int i = 0;
-    while (*p != '\0')
-    {
-        while (*p == ' ')
-        {
-            p++;
-        }
-
-        if (*p == '\0')
-        {
-            break;
-        }
-
-        tokens[i++] = p;
-        while (*p != ' ' && *p != '\0')
-        {
-            p++;
-        }
-
-        if (*p == '\0')
-        {
-            break;
-        }
-
-        *p = '\0';
-        p++;
-    }
-
-    *token_len = i;
-}
 
 void start_interactive(int prec)
 {
@@ -57,7 +24,7 @@ void start_interactive(int prec)
     atexit(disable_raw_mode);
     fprintf(stdout, BANNER);
     fprintf(stdout, "====== Interactive Mode (type \"quit\" or 'q' to leave) ======\r\n");
-
+    MathExpr expr;
     while (1)
     {
         
@@ -65,105 +32,47 @@ void start_interactive(int prec)
         int token_len = 0;
         char* in = read_line("> ");
 
-        if (in == NULL || in[0] == 'q' )
+        if (in == NULL || in[0] == 'q')
         {
             free(in);
             break;
         }
-
-        if (strlen(in) == 0)
+        add_to_history(in);
+        if (MathExpr_build(in, &expr, prec) != 0)
         {
             free(in);
             continue;
-        } else {
-            add_to_history(in);
         }
-
-        char* p = in;
-        while (*p == ' ')
+        Exn res = MathExpr_eval(&expr);
+        if (res == NULL)
         {
-            p++;
-        }
-
-        char* nl = strchr(p, '\n');
-        if (nl != NULL)
-        {
-            *nl = '\0';
-        }
-
-        if (isalpha(*p))
-        {
-            // todo: handle math function
             free(in);
-            fprintf(stdout, "Math function is not supported yet\r\n");
+            MathExpr_release(&expr);
             continue;
-        } else {
-            split(p, tokens, &token_len);
         }
-
-        char* num1, *num2;
-        char op = '+';
-        // print tokens
-        for (int i = 0; i < token_len; i++)
+        if (res->error != EXTENDED_NUM_OK)
         {
-            printf("token[%d]: %s\r\n", i, tokens[i]);
-        }
-        Exn res = NULL;
-
-        if (token_len >= 3)
-        {
-            num1 = tokens[0];
-            op = tokens[1][0];
-            num2 = tokens[2];
-            Exn n1 = atoExn(num1, prec);
-            Exn n2 = atoExn(num2, prec);       
-            switch (op)
-            {
-            case '+':
-                res = Exn_add(n1, n2);
-                break;
-            case '-':
-                res = Exn_sub(n1, n2);
-                break;
-            case '*':
-            case 'x':
-                res = Exn_mul(n1, n2);
-                break;
-            case '/':
-                res = Exn_div(n1, n2);
-                break;
-            default:
-                MATH_URECG_OP(op);
-                break;
-            }
-
-            printf("%s %c %s = ", num1, op, num2);
-
-            Exn_release(&n1);
-            Exn_release(&n2);
-        }
-        else {
-            // todo: function
-            printf("Invalid input\r\n");
-        }
-
-        if (res != NULL)
-        {
-            Exn_show(res);
-            char* fmt_res = NULL;
-            if (res->decimal > NORMAL_LIMIT)
-            {
-                fmt_res = Exn_fmt(res, EXN_FMT_SCIENTIFIC);
-            }
-            else
-            {
-                fmt_res = Exn_fmt(res, EXN_FMT_NORMAL);
-            }
-            printf("%s\r\n", fmt_res);
-            free(fmt_res);
+            __WARNING("The result got an error: %s\r\n", Exn_err2str(res->error));
             Exn_release(&res);
+            free(in);
+            MathExpr_release(&expr);
+            continue;
         }
+        char* fmt_res = NULL;
+        if (abs(res->decimal - 1) > NORMAL_LIMIT)
+        {
+            fmt_res = Exn_fmt(res, EXN_FMT_SCIENTIFIC);
+        }
+        else
+        {
+            fmt_res = Exn_fmt(res, EXN_FMT_NORMAL);
+        }
+
+        printf("%s\r\n", fmt_res);
+        free(fmt_res);
+        Exn_release(&res);
         free(in);
+        MathExpr_release(&expr);
     }
 
     fprintf(stdout, "=====================================================\r\n");
@@ -227,13 +136,15 @@ int main( int argc, char *argv[] )
     else if (help)
     {
         printf("Usage: %s operand1 operation operand2 [option1]\r\n", argv[0]);
+        printf("  return the result of binary expression\r\n");
         printf("or: %s [option2]\r\n", argv[0]);
+        printf("  start interactive mode\r\n");
         printf("Option1:\r\n");
-        printf("  -p <digit-int>, --precision\tSet the precision of the output\r\n");
+        printf("  -p <integer>, --precision\tSet the precision of the output\r\n");
         printf("Option2:\r\n");
         printf("  -h, --help\tDisplay this help message\r\n");
         printf("  -v, --verbose\tDisplay the precision\r\n");
-        printf("  -p <digit-num>, --precision <digit-num>\tStart interactive mode with specified precision\r\n");
+        printf("  -p <integer>, --precision <integer>\tStart interactive mode with specified precision\r\n");
     }
     else if (verbose)
     {
@@ -245,32 +156,50 @@ int main( int argc, char *argv[] )
             printf("%s\r\n", argv[i]);
         }
 
-        if (argc >= 3)
+        if (argc - optind >= 3)
         {
+
+            for (int i = optind + 3; i < argc; i++)
+            {
+                __WARNING("Extra arguments: %s\r\n", argv[i]);
+            }
+
             char* num1 = argv[optind];
             char op = argv[optind + 1][0];
             char* num2 = argv[optind + 2];
+            
+            BinOprExpr bin_op;
             Exn n1 = atoExn(num1, precision);
             Exn n2 = atoExn(num2, precision);
-            Exn res = NULL;
-            switch (op)
+            if (n1 == NULL || n2 == NULL)
             {
-            case '+':
-                res = Exn_add(n1, n2);
-                break;
-            case '-':
-                res = Exn_sub(n1, n2);
-                break;
-            case '*':
-            case 'x':
-                res = Exn_mul(n1, n2);
-                break;
-            case '/':
-                res = Exn_div(n1, n2);
-                break;
-            default:
-                MATH_URECG_OP(op);
-                break;
+                __WARNING("Invalid input: %s %c %s\r\n", num1, op, num2);
+                if (n1 != NULL) Exn_release(&n1);
+                if (n2 != NULL) Exn_release(&n2);
+                return 0;
+            }
+            if (n1->error != EXTENDED_NUM_OK)
+            {
+                __WARNING("Failed to parse: %s %c %s\r\n", num1, op, num2);
+                Exn_release(&n1);
+                Exn_release(&n2);
+                return 0;
+            }
+            if (n2->error != EXTENDED_NUM_OK)
+            {
+                __WARNING("Failed to parse: %s %c %s\r\n", num1, op, num2);
+                Exn_release(&n1);
+                Exn_release(&n2);
+                return 0;
+            }
+            BinOprExpr_build(&bin_op, op, n1, n2);
+            Exn res = BinOprExpr_eval(&bin_op);
+            if (res == NULL)
+            {
+                __WARNING("Failed to evaluate: %s %c %s\r\n", num1, op, num2);
+                Exn_release(&n1);
+                Exn_release(&n2);
+                return 0;
             }
 
             printf("%s %c %s = ", num1, op, num2);
@@ -280,9 +209,8 @@ int main( int argc, char *argv[] )
 
             if (res != NULL)
             {
-                Exn_show(res);
                 char* fmt_res = NULL;
-                if (res->decimal > NORMAL_LIMIT)
+                if (abs(res->decimal-1) > NORMAL_LIMIT)
                 {
                     fmt_res = Exn_fmt(res, EXN_FMT_SCIENTIFIC);
                 }

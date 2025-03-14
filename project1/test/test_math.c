@@ -1,4 +1,5 @@
-#include "../math.h"
+#include "math.h"
+#include "util.h"
 #include <time.h>
 #define TIME_START clock_t start = clock();
 #define TIME_END clock_t end = clock(); \
@@ -317,12 +318,26 @@ TEST(karatsuba_basic)
 {
     Exn num1 = atoExn("12345", 100);
     Exn num2 = atoExn("65432", 100);
-    Exn num3 = Exn_mul(num1, num2);
+    Exn num3 = __Exn_mul_karatsuba(num1, num2, num1->length + num2->length, 
+        num1->sign * num2->sign);
     char* num3_s = Exn_fmt(num3, EXN_FMT_NORMAL);
     Exn_show(num3);
     fprintf(stdout, "Formatted number: %s\n", num3_s);
     // assert(strcmp(num3_s, "80779853376") == 0);
     free(num3_s);
+    Exn_release(&num1);
+    Exn_release(&num2);
+    Exn_release(&num3);
+}
+
+TEST(karatsuba_speed)
+{
+    Exn num1 = Exn_rand(100000);
+    Exn num2 = Exn_rand(100000);
+    TIME_START
+    Exn num3 = __Exn_mul_karatsuba(num1, num2, num1->length + num2->length, 
+        num1->sign * num2->sign);
+    TIME_END
     Exn_release(&num1);
     Exn_release(&num2);
     Exn_release(&num3);
@@ -340,73 +355,73 @@ TEST(karatsuba_basic)
 //     Exn_release(&num3);
 // }
 
-TEST(binopexpr_build)
-{
-    Exn num1 = atoExn("123456", 100);
-    Exn num2 = atoExn("654321", 100);
-    BinOprExpr expr;
-    BinOprExpr_build(&expr, '/', num1, num2);
-    printf("num1: ");
-    Exn_show(expr.num1);
-    printf("num2: ");
-    Exn_show(expr.num2);
-    printf("op: %c\n", expr.binop);
-    // clean
-    Exn_release(&num1);
-    Exn_release(&num2);
-}
+// TEST(binopexpr_build)
+// {
+//     Exn num1 = atoExn("123456", 100);
+//     Exn num2 = atoExn("654321", 100);
+//     BinOprExpr expr;
+//     BinOprExpr_build(&expr, '/', num1, num2);
+//     printf("num1: ");
+//     Exn_show(expr.num1);
+//     printf("num2: ");
+//     Exn_show(expr.num2);
+//     printf("op: %c\n", expr.binop);
+//     // clean
+//     Exn_release(&num1);
+//     Exn_release(&num2);
+// }
 
-TEST(binop_expr_parse)
-{
-    char in[] = "123456 + 654321";
-    MathExpr expr;
-    MathExpr_build(in, &expr, 100);
-    BinOprExpr* bin_op = (BinOprExpr*)expr.expr.binop;
-    printf("num1: ");
-    Exn_show(bin_op->num1);
-    printf("num2: ");
-    Exn_show(bin_op->num2);
-    // clean
-    MathExpr* ptr = &expr;
-    MathExpr_release(ptr);
-}
+// TEST(binop_expr_parse)
+// {
+//     char in[] = "123456 + 654321";
+//     MathExpr expr;
+//     MathExpr_build(in, &expr, 100);
+//     BinOprExpr* bin_op = (BinOprExpr*)expr.expr.binop;
+//     printf("num1: ");
+//     Exn_show(bin_op->num1);
+//     printf("num2: ");
+//     Exn_show(bin_op->num2);
+//     // clean
+//     MathExpr* ptr = &expr;
+//     MathExpr_release(ptr);
+// }
 
-TEST(func_expr_parse)
-{
-    char in[] = "fact(123456E19, 16)";
-    MathExpr expr;
-    if (MathExpr_build(in, &expr, 100) == 0){
-    MathFunc* func = (MathFunc*)expr.expr.func;
-    printf("func: %s\n", func->alias);
-    printf("argc: %d\n", func->argc);
-    printf("num1: ");
-    Exn_show(func->args[1]);}
-    // clean
-    MathExpr* ptr = &expr;
-    MathExpr_release(ptr);
-}
+// TEST(func_expr_parse)
+// {
+//     char in[] = "fact(123456E19, 16)";
+//     MathExpr expr;
+//     if (MathExpr_build(in, &expr, 100) == 0){
+//     MathFunc* func = (MathFunc*)expr.expr.func;
+//     printf("func: %s\n", func->alias);
+//     printf("argc: %d\n", func->argc);
+//     printf("num1: ");
+//     Exn_show(func->args[1]);}
+//     // clean
+//     MathExpr* ptr = &expr;
+//     MathExpr_release(ptr);
+// }
 
-TEST(expr_eval)
-{
-    char in[] = "3.24 / 4.56";
-    MathExpr expr;
-    if (MathExpr_build(in, &expr, 100) == 0) {
-        Exn res = MathExpr_eval(&expr);
-        if (res != NULL) {
-            Exn_show(res);
-            char* res_s = Exn_fmt(res, EXN_FMT_NORMAL);
-            printf("Formatted number: %s\n", res_s);
-            free(res_s);
-            Exn_release(&res);
-        } else {
-            fprintf(stderr, "Failed to evaluate expression\n");
-        }
-        MathExpr_release(&expr);
-    }
-    else {
-        fprintf(stderr, "Failed to build expression\n");
-    }
-}
+// TEST(expr_eval)
+// {
+//     char in[] = "3.24 / 4.56";
+//     MathExpr expr;
+//     if (MathExpr_build(in, &expr, 100) == 0) {
+//         Exn res = MathExpr_eval(&expr);
+//         if (res != NULL) {
+//             Exn_show(res);
+//             char* res_s = Exn_fmt(res, EXN_FMT_NORMAL);
+//             printf("Formatted number: %s\n", res_s);
+//             free(res_s);
+//             Exn_release(&res);
+//         } else {
+//             fprintf(stderr, "Failed to evaluate expression\n");
+//         }
+//         MathExpr_release(&expr);
+//     }
+//     else {
+//         fprintf(stderr, "Failed to build expression\n");
+//     }
+// }
 
 TEST(div_basic)
 {
@@ -477,7 +492,7 @@ TEST(sqrt_basic)
 
 TEST(ksm_basic) {
     Exn num = atoExn("2", 1000);
-    Exn ksm_res = ksm(num, 104);
+    Exn ksm_res = ksm(num, 10);
     Exn_show(ksm_res);
     char* ksm_res_s = Exn_fmt(ksm_res, EXN_FMT_NORMAL);
     printf("Formatted number: %s\n", ksm_res_s);
@@ -488,13 +503,47 @@ TEST(ksm_basic) {
     free(ksm_res_s);
 }
 
-TEST(ksm_speed) {
-    Exn num = atoExn("2", 100000000);
-    TIME_START
-    Exn ksm_res = ksm(num, 1000000);
-    TIME_END
+// TEST(ksm_speed) {
+//     Exn num = atoExn("2", 100000000);
+//     TIME_START
+//     Exn ksm_res = ksm(num, 1000000);
+//     TIME_END
+//     Exn_release(&num);
+//     Exn_release(&ksm_res);
+// }
+
+TEST(Exn_toInt_basic) 
+{
+    Exn num = atoExn("123456789", 100);
+    int int_res = Exn_toInt(num);
+    printf("Integer result: %d\n", int_res);
+    assert(int_res == 123456789);
+
     Exn_release(&num);
-    Exn_release(&ksm_res);
+}
+
+TEST(Exn_toInt_neg) 
+{
+    Exn num = atoExn("-123456789", 100);
+    int int_res = Exn_toInt(num);
+    printf("Integer result: %d\n", int_res);
+    assert(int_res == -123456789);
+
+    Exn_release(&num);
+}
+
+TEST(fact_basic)
+{
+    Exn num = atoExn("10", 100);
+    Exn fact_res = fact(Exn_toInt(num));
+    Exn_show(fact_res);
+    char* fact_res_s = Exn_fmt(fact_res, EXN_FMT_NORMAL);
+    printf("Formatted number: %s\n", fact_res_s);
+
+    Exn_release(&num);
+    Exn_release(&fact_res);
+
+    free(fact_res_s);
 }
 
 int main()

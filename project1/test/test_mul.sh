@@ -1,0 +1,1 @@
+g++ -Wall -std=c++14 -I ./benchmark/include -L ./build/src test_mul.cpp math.c -pthread -lbenchmark -DBENCHMARK_  -o test_mul -lm -g &&gdb ./test_mul
