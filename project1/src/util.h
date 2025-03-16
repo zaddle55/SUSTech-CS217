@@ -1,3 +1,11 @@
+/** 
+ * @file util.h
+ * @brief Utility functions and macros for the project.
+ * @details This file contains various utility functions and macros that are used throughout the project.
+ *          It includes test registration, scope management, and min/max macros.
+ * @date 2025-03-15
+ * @author zaddle
+ */
 
 #ifndef UTIL_H_
 #define UTIL_H_
@@ -7,7 +15,6 @@
 #define true (unsigned char)1
 #define false (unsigned char)0
 
-#define INPUT_BUFFER 1024 * 1024
 #define TOKEN_BUFFER 1024
 #define DEFALT_PRECISION 100
 #define NORMAL_LIMIT 20

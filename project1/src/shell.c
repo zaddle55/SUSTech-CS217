@@ -35,10 +35,10 @@ void disable_raw_mode() {
 // 清除当前行
 void clear_line(int position) {
     printf("\r");           // 回到行首
-    for (int i = 0; i < position + 2; i++) { // +2 为提示符 "> "
-        printf(" ");        // 用空格覆盖
+    for (int i = 0; i < position + 2; i++) {
+        printf(" "); 
     }
-    printf("\r");           // 再次回到行首
+    printf("\r");
 }
 
 // 刷新显示当前行
@@ -47,7 +47,7 @@ void refresh_line(const char *prompt, char *buffer) {
     fflush(stdout);
 }
 
-// 添加命令到历史记录
+// 添加命令
 void add_to_history(const char *cmd) {
     if (strlen(cmd) == 0) return;
     
@@ -55,8 +55,7 @@ void add_to_history(const char *cmd) {
     if (history_count > 0 && strcmp(history[history_count-1], cmd) == 0) {
         return;
     }
-    
-    // 如果历史记录已满，移除最旧的
+
     if (history_count >= MAX_HISTORY) {
         free(history[0]);
         for (int i = 0; i < history_count - 1; i++) {
@@ -69,7 +68,7 @@ void add_to_history(const char *cmd) {
     history_count++;
 }
 
-// 读取一行输入，支持历史导航
+// 读取一行输入
 char* read_line(const char *prompt) {
     char *buffer = (char *)malloc(MAX_INPUT_SIZE);
     int position = 0;
@@ -82,7 +81,7 @@ char* read_line(const char *prompt) {
     while (1) {
         char c;
         if (read(STDIN_FILENO, &c, 1) == 0) {
-            continue; // 超时，继续循环
+            continue; // 超时
         }
         
         // 处理退出和换行
@@ -99,7 +98,7 @@ char* read_line(const char *prompt) {
             if (position > 0) {
                 position--;
                 buffer[position] = '\0';
-                printf("\b \b"); // 退格，擦除，再退格
+                printf("\b \b");
                 fflush(stdout);
             }
         } 
@@ -114,7 +113,6 @@ char* read_line(const char *prompt) {
                 if (seq[1] == 'A') { // 上箭头
                     if (history_count > 0 && current_history > 0) {
                         current_history--;
-                        // 清除当前行并显示历史命令
                         clear_line(position);
                         strcpy(buffer, history[current_history]);
                         position = strlen(buffer);
@@ -123,7 +121,6 @@ char* read_line(const char *prompt) {
                 } else if (seq[1] == 'B') { // 下箭头
                     if (current_history < history_count) {
                         current_history++;
-                        // 清除当前行
                         clear_line(position);
                         
                         // 显示较新的历史命令或清空
@@ -137,20 +134,6 @@ char* read_line(const char *prompt) {
                         refresh_line(prompt, buffer);
                     }
                 }
-                // else if (seq[1] == 'C') { // 右箭头
-                //     if (position < MAX_INPUT_SIZE - 1) {
-                //         position++;
-                //         printf("\033[C"); // 光标右移
-                //         fflush(stdout);
-                //     }      
-                // } else if (seq[1] == 'D') { // 左箭头
-                //     if (position > 0) {
-                //         position--;
-                //         printf("\033[D"); // 光标左移
-                //         fflush(stdout);
-                //     }
-                    
-                // }
             }
         } 
         // 处理常规输入
@@ -158,7 +141,7 @@ char* read_line(const char *prompt) {
             if (position < MAX_INPUT_SIZE - 1) {
                 buffer[position++] = c;
                 buffer[position] = '\0';
-                printf("%c", c); // 直接显示输入的字符
+                printf("%c", c);
                 fflush(stdout);
             }
         }
@@ -171,31 +154,3 @@ void cleanup_history() {
         free(history[i]);
     }
 }
-
-// int main() {
-//     /* example */
-//     enable_raw_mode();
-//     atexit(disable_raw_mode); // 确保在退出时恢复终端设置
-    
-//     printf("简易命令行 (Ctrl-D 退出)\r\n");
-    
-//     while (1) {
-//         char *line = read_line("> ");
-        
-//         if (line == NULL) {
-//             printf("\r\n再见!\r\n");
-//             break;
-//         }
-        
-//         // 只有非空输入才添加到历史记录
-//         if (strlen(line) > 0) {
-//             add_to_history(line);
-//             printf("您输入了: %s\r\n", line);
-//         }
-        
-//         free(line);
-//     }
-    
-//     cleanup_history();
-//     return 0;
-// }

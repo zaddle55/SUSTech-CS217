@@ -64,17 +64,6 @@
     fprintf(stderr, "\r\n"); \
     fprintf(stderr, ANSI_RESET);fprintf(stderr, "\r\n");
 
-//? What problem will the following code cause?
-//? #define WAVY(__input, __pos, __len, ANSI_COLOR) \
-//?    fprintf(stderr, "\t%s\r\n\t", (__input)); \
-//?    fprintf(stderr, ANSI_COLOR); \
-//?    for (int i = 0; i < (__pos); i++) fprintf(stderr, " "); \
-//?    fprintf(stderr, "^"); \
-//?    for (int i = 1; i < (__len); i++) fprintf(stderr, "~"); \
-//?    fprintf(stderr, "\r\n"); \
-//?    fprintf(stderr, ANSI_RESET);fprintf(stderr, "\r\n");
-
-
 // ############################## Math Exception ##############################
 
 #define MATH_EXCEPT_
@@ -96,6 +85,12 @@
 #define FUNCT_EXCEPT_
 #define FUNCT_INVOKE_FAIL(__func, __why) __WARNING("<Function Exception> Cannot invoke function '%s': %s", __func, __why)
 #define FUNCT_ARG_MISMATCH(__func, __argc, __inargc) __WARNING("<Function Exception> Argument mismatch in function '%s': the function should have %d arguments but received %d arguments.", __func, __argc, __inargc)
+
+// ############################## MathExpr Exception ##############################
+
+#define MEXPR_EXCEPT_
+#define MEXPR_PARSE_FAIL(__expr, __why) __WARNING("<MathExpr Exception> Cannot parse expression '%s': %s", __expr, __why)
+#define MEXPR_RESULT_ERROR(__why) __WARNING("<MathExpr Exception> The result got an error: %s", __why)
 
 // ############################## Memory Exception ##############################
 

@@ -177,8 +177,11 @@ Exn Exn_div( const Exn num1, const Exn num2);
  * @param result The result of the newton's method
  */
 void Exn_newton(Exn (*func)(Exn, Exn), int bound, Exn param, Exn* result);
+
 Exn Exn_divmod( const Exn num1, const Exn num2, Exn* mod );
+
 Exn Exn_modulo( const Exn num1, const Exn num2 );
+
 Exn Exn_sqrt( const Exn num );
 
 void Exn_round( Exn* num, int scale, int type);
@@ -202,6 +205,7 @@ Exn fact(int n);
  * @return Exn The result of the power
  * @note The caller is responsible for releasing the memory
  * @note The exponent must be an integer ranged
+ * @see https://en.wikipedia.org/wiki/Exponentiation_by_squaring
  */
 Exn ksm( const Exn base, const int exp );
 
@@ -249,15 +253,8 @@ char* Exn_fmt( const Exn num, Exnfmt mode );
 /**
  * @brief Output the details of the extended number
  * @param num The extended number
- * @example 
  */
 void Exn_show( const Exn num );
-
-//! Delete later
-Exn __Exn_mul_fft( const Exn num1, const Exn num2, int len, int sign );
-Exn __Exn_mul_karatsuba( const Exn num1, const Exn num2, int len, int sign );
-Exn __Exn_mul_pl( const Exn num1, const Exn num2, int len, int sign );
-//! Delete later
 
 // ############################## BinOprExpr Class ##############################
 
@@ -303,7 +300,9 @@ typedef struct {
 bool MFunc_ckarg(const MathFunc* func);
 
 Exn MFunc_eval(const MathFunc* func);
+
 void MFunc_release(MathFunc** func);
+
 void MFunc_build(MathFunc* func, int type, const char* alias, uint8_t argc, Exn* args);
 
 // ############################## Math Expr Class ##############################

@@ -52,7 +52,7 @@ void start_interactive(int prec)
         }
         if (res->error != EXTENDED_NUM_OK)
         {
-            __WARNING("The result got an error: %s\r\n", Exn_err2str(res->error));
+            MEXPR_RESULT_ERROR(Exn_err2str(res->error));
             Exn_release(&res);
             free(in);
             MathExpr_release(&expr);
@@ -145,10 +145,19 @@ int main( int argc, char *argv[] )
         printf("  -h, --help\tDisplay this help message\r\n");
         printf("  -v, --verbose\tDisplay the precision\r\n");
         printf("  -p <integer>, --precision <integer>\tStart interactive mode with specified precision\r\n");
+        printf("Math Function:\r\n");
+        printf("  sqrt(x)\tSquare root of x\r\n");
+        printf("  fact(int)\tFactorial of int\r\n");
+        printf("  div(x, y)\tInteger division of x and y\r\n");
+        printf("  mod(x, y)\tModulo of x and y\r\n");
+        printf("  pow(x, int)\tPower of x to the int\r\n");
     }
     else if (verbose)
     {
-        printf("Precision: %d\r\n", precision);
+        printf("Default precision: %d\r\n", DEFALT_PRECISION);
+        printf("Max input characters: %d\r\n", MAX_INPUT_SIZE);
+        printf("The least absolute exponent when outputs as scientific: %d\r\n", NORMAL_LIMIT);
+        printf("The most history inputs: %d\r\n", MAX_HISTORY);
     }
     else {
         for (int i = optind; i < argc; i++)
@@ -180,14 +189,14 @@ int main( int argc, char *argv[] )
             }
             if (n1->error != EXTENDED_NUM_OK)
             {
-                __WARNING("Failed to parse: %s %c %s\r\n", num1, op, num2);
+                MEXPR_PARSE_FAIL(num1, Exn_err2str(n1->error));
                 Exn_release(&n1);
                 Exn_release(&n2);
                 return 0;
             }
             if (n2->error != EXTENDED_NUM_OK)
             {
-                __WARNING("Failed to parse: %s %c %s\r\n", num1, op, num2);
+                MEXPR_PARSE_FAIL(num2, Exn_err2str(n2->error));
                 Exn_release(&n1);
                 Exn_release(&n2);
                 return 0;
