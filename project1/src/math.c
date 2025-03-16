@@ -1491,7 +1491,7 @@ Exn Exn_sqrt(const Exn num) {
   Exn inv = Exn_shift(Exn_one, -result->decimal);
   Exn_newton(__ntiter_inv, prec, result, &inv);
     Exn_release(&result);
-    inv->decimal = num->decimal / 2;
+    // inv->decimal = num->decimal / 2;
     Exn_round(&inv, len, 0);
   return inv;
 }
