@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Dotproduct {
     private static final Random random = new Random();
+    private static int n_threads = 1;
 
     // Vector creation methods
     public static byte[] createVectorByte(int size) {
@@ -106,16 +107,16 @@ public class Dotproduct {
 
     // Parallel dot product methods
     public static long dotProductParallelByte(byte[] a, byte[] b, int size) {
-        int numThreads = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        final long[] results = new long[numThreads];
+        // int n_threads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(n_threads);
+        final long[] results = new long[n_threads];
         
-        int chunkSize = size / numThreads;
+        int chunkSize = size / n_threads;
         
-        for (int t = 0; t < numThreads; t++) {
+        for (int t = 0; t < n_threads; t++) {
             final int threadId = t;
             final int start = t * chunkSize;
-            final int end = (t == numThreads - 1) ? size : (t + 1) * chunkSize;
+            final int end = (t == n_threads - 1) ? size : (t + 1) * chunkSize;
             
             executor.execute(() -> {
                 long localSum = 0;
@@ -142,16 +143,16 @@ public class Dotproduct {
     }
 
     public static long dotProductParallelShort(short[] a, short[] b, int size) {
-        int numThreads = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        final long[] results = new long[numThreads];
+        // int n_threads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(n_threads);
+        final long[] results = new long[n_threads];
         
-        int chunkSize = size / numThreads;
+        int chunkSize = size / n_threads;
         
-        for (int t = 0; t < numThreads; t++) {
+        for (int t = 0; t < n_threads; t++) {
             final int threadId = t;
             final int start = t * chunkSize;
-            final int end = (t == numThreads - 1) ? size : (t + 1) * chunkSize;
+            final int end = (t == n_threads - 1) ? size : (t + 1) * chunkSize;
             
             executor.execute(() -> {
                 long localSum = 0;
@@ -178,16 +179,16 @@ public class Dotproduct {
     }
 
     public static long dotProductParallelInt(int[] a, int[] b, int size) {
-        int numThreads = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        final long[] results = new long[numThreads];
+        // int n_threads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(n_threads);
+        final long[] results = new long[n_threads];
         
-        int chunkSize = size / numThreads;
+        int chunkSize = size / n_threads;
         
-        for (int t = 0; t < numThreads; t++) {
+        for (int t = 0; t < n_threads; t++) {
             final int threadId = t;
             final int start = t * chunkSize;
-            final int end = (t == numThreads - 1) ? size : (t + 1) * chunkSize;
+            final int end = (t == n_threads - 1) ? size : (t + 1) * chunkSize;
             
             executor.execute(() -> {
                 long localSum = 0;
@@ -214,16 +215,16 @@ public class Dotproduct {
     }
 
     public static double dotProductParallelFloat(float[] a, float[] b, int size) {
-        int numThreads = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        final double[] results = new double[numThreads];
+        // int n_threads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(n_threads);
+        final double[] results = new double[n_threads];
         
-        int chunkSize = size / numThreads;
+        int chunkSize = size / n_threads;
         
-        for (int t = 0; t < numThreads; t++) {
+        for (int t = 0; t < n_threads; t++) {
             final int threadId = t;
             final int start = t * chunkSize;
-            final int end = (t == numThreads - 1) ? size : (t + 1) * chunkSize;
+            final int end = (t == n_threads - 1) ? size : (t + 1) * chunkSize;
             
             executor.execute(() -> {
                 double localSum = 0;
@@ -250,16 +251,16 @@ public class Dotproduct {
     }
 
     public static double dotProductParallelDouble(double[] a, double[] b, int size) {
-        int numThreads = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        final double[] results = new double[numThreads];
+        // int n_threads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(n_threads);
+        final double[] results = new double[n_threads];
         
-        int chunkSize = size / numThreads;
+        int chunkSize = size / n_threads;
         
-        for (int t = 0; t < numThreads; t++) {
+        for (int t = 0; t < n_threads; t++) {
             final int threadId = t;
             final int start = t * chunkSize;
-            final int end = (t == numThreads - 1) ? size : (t + 1) * chunkSize;
+            final int end = (t == n_threads - 1) ? size : (t + 1) * chunkSize;
             
             executor.execute(() -> {
                 double localSum = 0;
@@ -296,6 +297,12 @@ public class Dotproduct {
         int size = Integer.parseInt(args[0]);
         String dataType = args[1];
         String mode = args.length > 2 ? args[2] : "plain";
+        if (mode.equals("parallel")) {
+            n_threads = Integer.parseInt(args[3]);
+        } else if (!mode.equals("plain")) {
+            System.err.println("Invalid mode: " + mode);
+            System.exit(1);
+        }
         
         random.setSeed(System.currentTimeMillis());
         
