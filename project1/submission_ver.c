@@ -2899,10 +2899,12 @@ int main( int argc, char *argv[] )
             if (*flag) // check if the argument is a number
             {
                 INPUT_ARG_FAIL(optarg, "precision should be a digital integer");
+                precision = DEFALT_PRECISION;
             }
             else if (precision <= 0)
             {
                 INPUT_ARG_FAIL(optarg, "precision should be a positive number");
+                precision = DEFALT_PRECISION;
             }
             break;
         case '?':
