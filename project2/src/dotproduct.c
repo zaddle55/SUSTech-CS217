@@ -26,6 +26,7 @@
 #endif
 
 #define _POSIX_C_SOURCE 200809L
+#ifdef __EP1__
 #define CPU_TIME_BEGIN \
     struct timespec start, end; \
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start); \
@@ -35,6 +36,13 @@
     double elapsed = (end.tv_sec - start.tv_sec) + \
                      (end.tv_nsec - start.tv_nsec) / 1e9; \
     printf("%.9f\n", elapsed);
+#endif
+#define CPU_TIME_BEGIN \
+    double start = omp_get_wtime(); \
+
+#define CPU_TIME_END \
+    double end = omp_get_wtime(); \
+    printf("%.9f\n", end - start);
 
 typedef char i8;
 typedef short i16;
@@ -445,7 +453,8 @@ void dotproduct_simdf(f64* a, f64* b, scalar_f* result, size_t size) {
 
 int main(int argc, char *argv[])
 {
-    srand(time(NULL));   
+    srand(time(NULL)); 
+    #ifdef __EP1__
     if (argc < 3) {
         fprintf(stderr, "Usage: %s <size> <data_type> \n", argv[0]);
         return EXIT_FAILURE;
@@ -527,5 +536,72 @@ int main(int argc, char *argv[])
             return EXIT_FAILURE;
     }
 
+    #endif
+    
+    if (argc < 4) {
+        fprintf(stderr, "Usage: %s <size> <data_type> <thread_numt>\n", argv[0]);
+    }
+    size_t size = atoll(argv[1]);
+    char* data_t = argv[2];
+    int thread_num = atoi(argv[3]);
+    omp_set_num_threads(thread_num);
+    if (strcmp(data_t, "char")) {
+        i8 *a = vec_create(i8, a, size);
+        i8 *b = vec_create(i8, b, size);
+        scalar_i result = 0;
+
+        vec_randi(a, size, -2, 1);
+        vec_randi(b, size, -2, 1);
+        CPU_TIME_BEGIN
+        dotprod_parallel(a, b, &result, size);
+        CPU_TIME_END
+
+        // printf("Dot product result: %lld\n", result);
+        vec_free(a);
+        vec_free(b);
+    } else if (strcmp(data_t, "short")) {
+        i16 *a = vec_create(i16, a, size);
+        i16 *b = vec_create(i16, b, size);
+        scalar_i result = 0;
+
+        vec_randi(a, size, -2, 1);
+        vec_randi(b, size, -2, 1);
+        CPU_TIME_BEGIN
+        dotprod_parallel(a, b, &result, size);
+        CPU_TIME_END
+
+        // printf("Dot product result: %lld\n", result);
+        vec_free(a);
+        vec_free(b);
+    } else if (strcmp(data_t, "int")) {
+        i32 *a = vec_create(i32, a, size);
+        i32 *b = vec_create(i32, b, size);
+        scalar_i result = 0;
+
+        vec_randi(a, size , -2 , 1 );
+        vec_randi(b , size , -2 , 1 );
+        
+        CPU_TIME_BEGIN
+        dotprod_parallel(a , b , &result , size );
+        CPU_TIME_END
+
+       // printf("Dot product result: %lld\n", result);
+       vec_free(a);
+       vec_free(b);
+
+    } else if (strcmp(data_t , "float")) {
+       f32 *a = vec_create(f32 , a , size );
+       f32 *b = vec_create(f32 , b , size );
+       scalar_f result = 0;
+
+       vec_randf(a , size , -2.0f , 1.0f );
+       vec_randf(b , size , -2.0f , 1.0f );
+
+       CPU_TIME_BEGIN
+       dotprod_parallel(a , b , &result , size );
+       CPU_TIME_END
+    }
+
+      // printf("Dot product result: %
     return EXIT_SUCCESS;
 }

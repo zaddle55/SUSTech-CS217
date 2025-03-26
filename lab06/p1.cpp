@@ -2,6 +2,7 @@
 using namespace std;
 int *create_array(int size)
 {
+    // int arr[size];
     int *arr = new int[size];
     for (int i = 0; i < size; i++)
         arr[i] = i * 10;
