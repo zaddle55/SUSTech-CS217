@@ -44,7 +44,7 @@
     double end = omp_get_wtime(); \
     printf("%.9f\n", end - start);
 
-typedef char i8;
+typedef signed char i8;
 typedef short i16;
 typedef int i32;
 typedef float f32;
@@ -67,7 +67,7 @@ typedef long double scalar_f;
 
 #define vec_randf(__name, __size, __start, __end) \
     for (size_t i = 0; i < __size; i++) { \
-        __name[i] = ((float)rand() / RAND_MAX) * (__end - __start) + __start; \
+        __name[i] = ((double)rand() / RAND_MAX) * (__end - __start) + __start; \
     } \
 
 #define vec_free(__name) \
@@ -461,7 +461,7 @@ int main(int argc, char *argv[])
     }
     size_t size = atoll(argv[1]);
     char* data_t = argv[2];
-    if (strcmp(data_t, "char")) {
+    if (strcmp(data_t, "char") == 0) {
         i8 *a = vec_create(i8, a, size);
         i8 *b = vec_create(i8, b, size);
         scalar_i result = 0;
@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
         // printf("Dot product result: %lld\n", result);
         vec_free(a);
         vec_free(b);
-    } else if (strcmp(data_t, "short")) {
+    } else if (strcmp(data_t, "short") == 0) {
         i16 *a = vec_create(i16, a, size);
         i16 *b = vec_create(i16, b, size);
         scalar_i result = 0;
@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
         // printf("Dot product result: %lld\n", result);
         vec_free(a);
         vec_free(b);
-    } else if (strcmp(data_t, "int")) {
+    } else if (strcmp(data_t, "int") == 0) {
         i32 *a = vec_create(i32, a, size);
         i32 *b = vec_create(i32, b, size);
         scalar_i result = 0;
@@ -503,7 +503,7 @@ int main(int argc, char *argv[])
         // printf("Dot product result: %lld\n", result);
         vec_free(a);
         vec_free(b);
-    } else if (strcmp(data_t, "float")) {
+    } else if (strcmp(data_t, "float") == 0) {
         f32 *a = vec_create(f32, a, size);
         f32 *b = vec_create(f32, b, size);
         scalar_f result = 0;
@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
         // printf("Dot product result: %lf\n", result);
         vec_free(a);
         vec_free(b);
-    } else if (strcmp(data_t, "double")) {
+    } else if (strcmp(data_t, "double") == 0) {
         f64 *a = vec_create(f64, a, size);
         f64 *b = vec_create(f64, b, size);
         scalar_f result = 0;

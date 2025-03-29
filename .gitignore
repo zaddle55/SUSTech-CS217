@@ -87,3 +87,9 @@ CMakeUserPresets.json
 *.ptx
 *.cubin
 *.fatbin
+
+# cargo targets
+**/target/
+
+# analysis
+**/analysis/
