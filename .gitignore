@@ -93,3 +93,7 @@ CMakeUserPresets.json
 
 # analysis
 **/analysis/
+**/analysis/*
+
+# java
+*.class
