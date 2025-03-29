@@ -1,4 +1,3 @@
-
 #include <bits/types/FILE.h>
 #include <time.h>
 #include <stdio.h>
@@ -8,13 +7,7 @@
 // get if is 32bit or 64bit
 #include <stddef.h>
 
-#if defined(__x86_64__) || defined(__ppc64__)
-#define IS_64_BIT 1
-#define REGISTER_SIZE 8
-#else
-#define IS_64_BIT 0
-#define REGISTER_SIZE 4
-#endif
+#define CACHE_SIZE 8
 
 #ifdef __x86_64__
 #include <immintrin.h>
@@ -26,7 +19,15 @@
 #endif
 
 #define _POSIX_C_SOURCE 200809L
-#ifdef __EP1__
+
+#if defined(__EP2__)
+#define CPU_TIME_BEGIN \
+    double start = omp_get_wtime(); \
+
+#define CPU_TIME_END \
+    double end = omp_get_wtime(); \
+    printf("%.9f\n", end - start);
+#else
 #define CPU_TIME_BEGIN \
     struct timespec start, end; \
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start); \
@@ -37,12 +38,6 @@
                      (end.tv_nsec - start.tv_nsec) / 1e9; \
     printf("%.9f\n", elapsed);
 #endif
-#define CPU_TIME_BEGIN \
-    double start = omp_get_wtime(); \
-
-#define CPU_TIME_END \
-    double end = omp_get_wtime(); \
-    printf("%.9f\n", end - start);
 
 typedef signed char i8;
 typedef short i16;
@@ -179,91 +174,81 @@ void dotproduct_plain_f64(f64 *a, f64 *b, scalar_f *result, size_t size) {
 }
 
 void dotproduct_unwind_i8(i8 *a, i8 *b, scalar_i *result, size_t size) {
-    for (int i = 0; i < size; i += REGISTER_SIZE) {
+    for (int i = 0; i < size; i += CACHE_SIZE) {
         *result += a[i] * b[i];
         *result += a[i + 1] * b[i + 1];
         *result += a[i + 2] * b[i + 2];
         *result += a[i + 3] * b[i + 3];
-        #if IS_64_BIT
         *result += a[i + 4] * b[i + 4];
         *result += a[i + 5] * b[i + 5];
         *result += a[i + 6] * b[i + 6];
         *result += a[i + 7] * b[i + 7];
-        #endif
     }
-    for (int i = size - size % REGISTER_SIZE; i < size; i++) {
+    for (int i = size - size % CACHE_SIZE; i < size; i++) {
         *result += a[i] * b[i];
     }
 }
 
 void dotproduct_unwind_i16(i16 *a, i16 *b, scalar_i *result, size_t size) {
-    for (int i = 0; i < size; i += REGISTER_SIZE) {
+    for (int i = 0; i < size; i += CACHE_SIZE) {
         *result += a[i] * b[i];
         *result += a[i + 1] * b[i + 1];
         *result += a[i + 2] * b[i + 2];
         *result += a[i + 3] * b[i + 3];
-        #if IS_64_BIT
         *result += a[i + 4] * b[i + 4];
         *result += a[i + 5] * b[i + 5];
         *result += a[i + 6] * b[i + 6];
         *result += a[i + 7] * b[i + 7];
-        #endif
     }
-    for (int i = size - size % REGISTER_SIZE; i < size; i++) {
+    for (int i = size - size % CACHE_SIZE; i < size; i++) {
         *result += a[i] * b[i];
     }
 }
 
 void dotproduct_unwind_i32(i32 *a, i32 *b, scalar_i *result, size_t size) {
-    for (int i = 0; i < size; i += REGISTER_SIZE) {
+    for (int i = 0; i < size; i += CACHE_SIZE) {
         *result += a[i] * b[i];
         *result += a[i + 1] * b[i + 1];
         *result += a[i + 2] * b[i + 2];
         *result += a[i + 3] * b[i + 3];
-        #if IS_64_BIT
         *result += a[i + 4] * b[i + 4];
         *result += a[i + 5] * b[i + 5];
         *result += a[i + 6] * b[i + 6];
         *result += a[i + 7] * b[i + 7];
-        #endif
     }
-    for (int i = size - size % REGISTER_SIZE; i < size; i++) {
+    for (int i = size - size % CACHE_SIZE; i < size; i++) {
         *result += a[i] * b[i];
     }
 }
 
 void dotproduct_unwind_f32(f32 *a, f32 *b, scalar_f *result, size_t size) {
-    for (int i = 0; i < size; i += REGISTER_SIZE) {
+    for (int i = 0; i < size; i += CACHE_SIZE) {
         *result += a[i] * b[i];
         *result += a[i + 1] * b[i + 1];
         *result += a[i + 2] * b[i + 2];
         *result += a[i + 3] * b[i + 3];
-        #if IS_64_BIT
         *result += a[i + 4] * b[i + 4];
         *result += a[i + 5] * b[i + 5];
         *result += a[i + 6] * b[i + 6];
         *result += a[i + 7] * b[i + 7];
-        #endif
     }
-    for (int i = size - size % REGISTER_SIZE; i < size; i++) {
+    for (int i = size - size % CACHE_SIZE; i < size; i++) {
         *result += a[i] * b[i];
     }
 }
 
 void dotproduct_unwind_f64(f64 *a, f64 *b, scalar_f *result, size_t size) {
-    for (int i = 0; i < size; i += REGISTER_SIZE) {
+    for (int i = 0; i < size; i += CACHE_SIZE) {
         *result += a[i] * b[i];
         *result += a[i + 1] * b[i + 1];
         *result += a[i + 2] * b[i + 2];
         *result += a[i + 3] * b[i + 3];
-        #if IS_64_BIT
         *result += a[i + 4] * b[i + 4];
         *result += a[i + 5] * b[i + 5];
         *result += a[i + 6] * b[i + 6];
         *result += a[i + 7] * b[i + 7];
-        #endif
     }
-    for (int i = size - size % REGISTER_SIZE; i < size; i++) {
+    for (int i = size - size % CACHE_SIZE; i < size; i++) {
         *result += a[i] * b[i];
     }
 }
@@ -313,31 +298,34 @@ void dotproduct_parallel_f64(f64 *a, f64 *b, scalar_f *result, size_t size) {
     *result += temp;
 }
 
-void dotproduct_simdi(i32 *a, i32 *b, scalar_i *result, size_t size) {
+void dotproduct_simdi(register i32 *a, register i32 *b, register scalar_i *result, register size_t size) {
 
     #ifdef SSE_
-        __m128i lo = _mm_setzero_si128();
-        __m128i hi = _mm_setzero_si128();
+        register __m128i lo = _mm_setzero_si128();
+        register __m128i hi = _mm_setzero_si128();
+
+        register __m128i* pa = (__m128i*)a;
+        register __m128i* pb = (__m128i*)b;
         
         // Process 4 elements at a time (SSE registers are 128-bit = 4 x int32)
-        size_t i = 0;
+        register size_t i = 0;
         for (; i + 3 <= size; i += 4) {
             // Load 4 int32 values from each array
-            __m128i va = _mm_loadu_si128((__m128i*)&a[i]);
-            __m128i vb = _mm_loadu_si128((__m128i*)&b[i]);
+            register __m128i va = _mm_lddqu_si128(pa + (i >> 2ULL));
+            register __m128i vb = _mm_lddqu_si128(pb + (i >> 2ULL));
             
             // Multiply with extended precision: 32-bit * 32-bit -> 64-bit
             // _mm_mul_epi32 only multiplies odd indices
             
             // Multiply odd indices (1, 3)
-            __m128i mul_odd = _mm_mul_epi32(va, vb);
+            register __m128i mul_odd = _mm_mul_epi32(va, vb);
             
             // Shift right to get even indices (0, 2) in position
-            __m128i va_even = _mm_srli_epi64(va, 32);
-            __m128i vb_even = _mm_srli_epi64(vb, 32);
+            va = _mm_srli_epi64(va, 32);
+            vb = _mm_srli_epi64(vb, 32);
             
             // Multiply even indices (0, 2)
-            __m128i mul_even = _mm_mul_epi32(va_even, vb_even);
+            register __m128i mul_even = _mm_mul_epi32(va, vb);
 
             lo = _mm_add_epi64(lo, mul_odd);
             hi = _mm_add_epi64(hi, mul_even);
@@ -392,27 +380,27 @@ void dotproduct_simdi(i32 *a, i32 *b, scalar_i *result, size_t size) {
     #endif
     }
 
-void dotproduct_simdf(f64* a, f64* b, scalar_f* result, size_t size) {
+void dotproduct_simdf(register f64* a, register f64* b, register scalar_f* result, register size_t size) {
     #ifdef AVX_
-        __m128d lo = _mm_setzero_pd();
-        __m128d hi = _mm_setzero_pd();
+        register __m128d lo = _mm_setzero_pd();
+        register __m128d hi = _mm_setzero_pd();
         
         // Process 2 elements at a time (SSE registers are 128-bit = 2 x float64)
-        size_t i = 0;
+        register size_t i = 0;
         for (; i + 1 <= size; i += 2) {
             // Load 2 float64 values from each array
-            __m128d va = _mm_loadu_pd(&a[i]);
-            __m128d vb = _mm_loadu_pd(&b[i]);
+            register __m128d va = _mm_loadu_pd(&a[i]);
+            register __m128d vb = _mm_loadu_pd(&b[i]);
             
             // Multiply with extended precision: 64-bit * 64-bit -> 128-bit
-            __m128d mul = _mm_mul_pd(va, vb);
+            register __m128d mul = _mm_mul_pd(va, vb);
             
             lo = _mm_add_pd(lo, mul);
         }
 
         lo = _mm_add_pd(lo, hi);
 
-        // Extract results from the __m128d
+        // Extract results from the register __m128d
         *result += _mm_cvtsd_f64(lo) + _mm_cvtsd_f64(_mm_unpackhi_pd(lo, lo));
         
         // Handle remaining elements
@@ -537,7 +525,8 @@ int main(int argc, char *argv[])
     }
 
     #endif
-    
+
+    #ifdef __EP2__
     if (argc < 4) {
         fprintf(stderr, "Usage: %s <size> <data_type> <thread_numt>\n", argv[0]);
     }
@@ -545,7 +534,7 @@ int main(int argc, char *argv[])
     char* data_t = argv[2];
     int thread_num = atoi(argv[3]);
     omp_set_num_threads(thread_num);
-    if (strcmp(data_t, "char")) {
+    if (strcmp(data_t, "char") == 0) {
         i8 *a = vec_create(i8, a, size);
         i8 *b = vec_create(i8, b, size);
         scalar_i result = 0;
@@ -559,7 +548,7 @@ int main(int argc, char *argv[])
         // printf("Dot product result: %lld\n", result);
         vec_free(a);
         vec_free(b);
-    } else if (strcmp(data_t, "short")) {
+    } else if (strcmp(data_t, "short") == 0) {
         i16 *a = vec_create(i16, a, size);
         i16 *b = vec_create(i16, b, size);
         scalar_i result = 0;
@@ -573,7 +562,7 @@ int main(int argc, char *argv[])
         // printf("Dot product result: %lld\n", result);
         vec_free(a);
         vec_free(b);
-    } else if (strcmp(data_t, "int")) {
+    } else if (strcmp(data_t, "int") == 0) {
         i32 *a = vec_create(i32, a, size);
         i32 *b = vec_create(i32, b, size);
         scalar_i result = 0;
@@ -589,7 +578,7 @@ int main(int argc, char *argv[])
        vec_free(a);
        vec_free(b);
 
-    } else if (strcmp(data_t , "float")) {
+    } else if (strcmp(data_t , "float") == 0) {
        f32 *a = vec_create(f32 , a , size );
        f32 *b = vec_create(f32 , b , size );
        scalar_f result = 0;
@@ -600,8 +589,111 @@ int main(int argc, char *argv[])
        CPU_TIME_BEGIN
        dotprod_parallel(a , b , &result , size );
        CPU_TIME_END
+    } else if (strcmp(data_t , "double") == 0) {
+       f64 *a = vec_create(f64 , a , size );
+       f64 *b = vec_create(f64 , b , size );
+       scalar_f result = 0;
+
+       vec_randf(a , size , -2.0f , 1.0f );
+       vec_randf(b , size , -2.0f , 1.0f );
+
+       CPU_TIME_BEGIN
+       dotprod_parallel(a , b , &result , size );
+       CPU_TIME_END
+    } else {
+        fprintf(stderr,"Unsupported data type: %s\n", data_t);
+        return EXIT_FAILURE;
     }
 
-      // printf("Dot product result: %
+    #endif
+    
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <size> <data_type> \n", argv[0]);
+        return EXIT_FAILURE;
+    }
+    size_t size = atoll(argv[1]);
+    char* data_t = argv[2];
+    if (strcmp(data_t, "int") == 0) {
+        i32 *a = vec_create(i32, a, size);
+        i32 *b = vec_create(i32, b, size);
+        scalar_i result = 0;
+
+        vec_randi(a, size, -2, 1);
+        vec_randi(b, size, -2, 1);
+
+        {
+            printf(" === Plain === \n");
+            CPU_TIME_BEGIN
+            dotprod_plain(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %lld\n", result);
+        }
+        
+        result = 0;
+
+        {
+            printf(" === Unroll === \n");
+            CPU_TIME_BEGIN
+            dotprod_unwind(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %lld\n", result);
+        }
+
+        result = 0;
+
+        {
+            printf(" === SIMD === \n");
+            CPU_TIME_BEGIN
+            dotproduct_simdi(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %lld\n", result);
+        }
+
+        vec_free(a);
+        vec_free(b);
+    } else if (strcmp(data_t, "double") == 0) {
+        f64 *a = vec_create(f64, a, size);
+        f64 *b = vec_create(f64, b, size);
+        scalar_f result = 0;
+
+        vec_randf(a, size, -2.0f , 1.0f );
+        vec_randf(b , size , -2.0f , 1.0f );
+
+        {
+            printf(" === Plain === \n");
+            CPU_TIME_BEGIN
+            dotprod_plain(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %Lf\n", result);
+        }
+
+        result = 0;
+
+        {
+            printf(" === Unroll === \n");
+            CPU_TIME_BEGIN
+            dotprod_unwind(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %Lf\n", result);
+        }
+
+        result = 0;
+
+        {
+            printf(" === SIMD === \n");
+            CPU_TIME_BEGIN
+            dotproduct_simdf(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %Lf\n", result);
+        }
+
+        vec_free(a);
+        vec_free(b);
+        
+    } else {
+         fprintf(stderr,"Unsupported data type: %s\n", data_t);
+            return EXIT_FAILURE;
+    }
+
     return EXIT_SUCCESS;
 }
