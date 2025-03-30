@@ -10,7 +10,7 @@ NUM_TRDS = 4
 EXEC_OPT = $(SIZE) $(TYPE) $(NUM_TRDS)
 
 CXX = gcc
-CFALGS = -c -Wall -march=native -fopenmp
+CFALGS = -c -Wall -march=native -fopenmp -D__EP4__
 CXXFLAGES = $(CFALGS)
 LDFLAGS = -fopenmp
 

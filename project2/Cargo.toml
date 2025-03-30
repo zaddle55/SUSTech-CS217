@@ -5,3 +5,16 @@ edition = "2024"
 
 [dependencies]
 rand = "0.8.5"
+rayon = "1.8.0"
+num_cpus = "1.16.0"
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+
+[[bench]]
+name = "dotprod"
+harness = false
+
+[profile.dev]
+opt-level = 0               # 使用稍高一些的优化级别，最低是0，最高是3
+overflow-checks = false     # 关闭整数溢出检查

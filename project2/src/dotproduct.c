@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <omp.h>
 #include <string.h>
+#ifdef __EP4__
+#include "cudakernel.h"
+#endif
 
-// get if is 32bit or 64bit
 #include <stddef.h>
 
 #define CACHE_SIZE 8
@@ -66,10 +68,23 @@ typedef long double scalar_f;
     } \
 
 #define vec_free(__name) \
+    if (__name == NULL) { \
+        fprintf(stderr, "Vector pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
     free(__name); \
     __name = NULL; \
 
-#define vec_fromFileStream(__name, __fp, __size) _Generic((__name), \
+#define vec_fromFileStream(__name, __fp, __size) \
+    if (__fp == NULL) { \
+        fprintf(stderr, "File pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    if (__name == NULL) { \
+        fprintf(stderr, "Vector pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    _Generic((__name), \
     i8 *: vec_fromFileStream_i8, \
     i16 *: vec_fromFileStream_i16, \
     i32 *: vec_fromFileStream_i32, \
@@ -77,7 +92,16 @@ typedef long double scalar_f;
     f64 *: vec_fromFileStream_f64 \
 )(__fp, __name, __size)
 
-#define dotprod_plain(__a, __b, __result, __size) _Generic((__a), \
+#define dotprod_plain(__a, __b, __result, __size) \
+    if (__a == NULL || __b == NULL) { \
+        fprintf(stderr, "Vector pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    if (__result == NULL) { \
+        fprintf(stderr, "Result pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    _Generic((__a), \
     i8 *: dotproduct_plain_i8, \
     i16 *: dotproduct_plain_i16, \
     i32 *: dotproduct_plain_i32, \
@@ -85,7 +109,16 @@ typedef long double scalar_f;
     f64 *: dotproduct_plain_f64 \
 )(__a, __b, __result, __size)
 
-#define dotprod_unwind(__a, __b, __result, __size) _Generic((__a), \
+#define dotprod_unwind(__a, __b, __result, __size) \
+    if (__a == NULL || __b == NULL) { \
+        fprintf(stderr, "Vector pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    if (__result == NULL) { \
+        fprintf(stderr, "Result pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    _Generic((__a), \
     i8 *: dotproduct_unwind_i8, \
     i16 *: dotproduct_unwind_i16, \
     i32 *: dotproduct_unwind_i32, \
@@ -93,7 +126,16 @@ typedef long double scalar_f;
     f64 *: dotproduct_unwind_f64 \
 )(__a, __b, __result, __size)
 
-#define dotprod_parallel(__a, __b, __result, __size) _Generic((__a), \
+#define dotprod_parallel(__a, __b, __result, __size) \
+    if (__a == NULL || __b == NULL) { \
+        fprintf(stderr, "Vector pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    if (__result == NULL) { \
+        fprintf(stderr, "Result pointer is NULL\n"); \
+        exit(EXIT_FAILURE); \
+    } \
+    _Generic((__a), \
     i8 *: dotproduct_parallel_i8, \
     i16 *: dotproduct_parallel_i16, \
     i32 *: dotproduct_parallel_i32, \
@@ -523,7 +565,6 @@ int main(int argc, char *argv[])
          fprintf(stderr,"Unsupported data type: %s\n", data_t);
             return EXIT_FAILURE;
     }
-
     #endif
 
     #ifdef __EP2__
@@ -604,9 +645,9 @@ int main(int argc, char *argv[])
         fprintf(stderr,"Unsupported data type: %s\n", data_t);
         return EXIT_FAILURE;
     }
-
     #endif
-    
+
+    #ifdef __EP4__
     if (argc < 3) {
         fprintf(stderr, "Usage: %s <size> <data_type> \n", argv[0]);
         return EXIT_FAILURE;
@@ -649,6 +690,16 @@ int main(int argc, char *argv[])
             printf("Dot product result: %lld\n", result);
         }
 
+        result = 0;
+
+        {
+            printf(" === CUDA Parallel === \n");
+            CPU_TIME_BEGIN
+            dotproduct_cuda_i32(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %lld\n", result);
+        }
+
         vec_free(a);
         vec_free(b);
     } else if (strcmp(data_t, "double") == 0) {
@@ -687,6 +738,16 @@ int main(int argc, char *argv[])
             printf("Dot product result: %Lf\n", result);
         }
 
+        result = 0;
+
+        {
+            printf(" === CUDA Parallel === \n");
+            CPU_TIME_BEGIN
+            dotproduct_cuda_f64(a, b, &result, size);
+            CPU_TIME_END
+            printf("Dot product result: %Lf\n", result);
+        }
+
         vec_free(a);
         vec_free(b);
         
@@ -694,6 +755,7 @@ int main(int argc, char *argv[])
          fprintf(stderr,"Unsupported data type: %s\n", data_t);
             return EXIT_FAILURE;
     }
+    #endif
 
     return EXIT_SUCCESS;
 }
