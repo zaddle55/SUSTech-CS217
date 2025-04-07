@@ -10,4 +10,5 @@ add_subdirectory(lib)
 
 add_executable(main ${DIR_SRCS})
 
+# target_link_libraries(main libvabs_static)
 target_link_libraries(main libvabs)

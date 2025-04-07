@@ -1,29 +1,32 @@
 #include <iostream>
 using namespace std;
 
-struct Stu {
-    int age;
-    char name[20];
-};
+// struct Stu {
+//     int age;
+//     char name[20];
+// };
 
-void init(Stu _s)
-{
-    _s.age = 20;
-}
+// void init(Stu _s)
+// {
+//     _s.age = 20;
+// }
 
-void sum(int arr[], int size)
-{
-    cout << sizeof arr << endl;
-}
+// void sum(int arr[], int size)
+// {
+//     cout << sizeof arr << endl;
+// }
 
 int main() {
-    Stu s;
-    int cookies[8] = {1, 2, 3, 4, 5, 6, 7, 8};
-    s.age = 10;
-    cout << "Before init: " << s.age << endl;
-    init(s);
-    cout << "After init: " << s.age << endl;
-    sum(cookies, 8);
+    float a = 409.2675;
+    int _b = 0xc1a6fae1;
+    float b = *(float*)&_b;
+    float c = -a;
+    long long _d = 0xc0611bf1a9fbe76d;
+    double d = *(double*)&_d;
+    printf("a = %x\n", *(int*)&a);
+    printf("b = %f\n", b);
+    printf("c = %x\n", *(int*)&c);
+    printf("d = %f\n", d);
     
     return 0;
 }
