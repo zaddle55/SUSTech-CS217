@@ -1,115 +1,122 @@
 #include "../inc/bmp.h"
 
-int BMPImage_decode(BMPImage *bimg, IStream *istream)
-{
-    if (!bimg || !istream)
-    {
-        WARNING("The arguments of input can't be null.");
+
+#define BIN_LEVEL 19
+static const char LEVELS[BIN_LEVEL + 1] = "@W#$OEXC[(/?=^~_.` ";
+#define BIN_LEN (255 / BIN_LEVEL)
+
+int BMPImage_decode(BMPImage * bimg, IStream *istream) {
+  if (!bimg || !istream) {
+    WARNING("The arguments of input can't be null.");
+    return 1;
+  }
+
+  BFHeader bfheader;
+  uint64_t bfheader_bytes =
+      IStream_readBytes(istream, (byte *)&bfheader, sizeof(BFHeader));
+  if (bfheader_bytes != sizeof(BFHeader)) {
+    WARNING("Failed to parse the Bitmap File Header: expect %zu bytes but got "
+            "%zu bytes",
+            sizeof(BFHeader), bfheader_bytes);
+    return 1;
+  }
+
+  word bi_size;
+  uint64_t ret = IStream_readWord(istream, &bi_size);
+  if (ret != 4) {
+    WARNING("Failed to parse the Bitmap Info Size: expect 4 bytes but got %zu "
+            "bytes",
+            ret);
+    return 1;
+  } else if (bi_size != STD_BIHEADER_LEN) {
+    // TODO
+    WARNING("Not a standard Bitmap Info Size: expect %u bytes but got %u bytes",
+            STD_BIHEADER_LEN, bi_size);
+    return 1;
+  }
+
+  BIHeader biheader;
+  biheader.bi_size = bi_size;
+  uint64_t biheader_bytes =
+      IStream_readBytes(istream, (byte *)&biheader + sizeof(bi_size),
+                        sizeof(BIHeader) - sizeof(bi_size));
+
+  if (biheader_bytes != (sizeof(BIHeader) - sizeof(bi_size))) {
+    WARNING("Failed to parse the Bitmap Info Header: expected %zu bytes but "
+            "got %zu bytes",
+            sizeof(BIHeader), biheader_bytes + sizeof(bi_size));
+    return 1;
+  }
+
+  if (biheader.bi_compress != STD_COMPRESS_TYPE) {
+    WARNING("Not a standard compress type: only no-compressed type(0) is "
+            "supported.");
+    return 1;
+  }
+
+  if (biheader.bi_bitcnt != STD_BIT_COUNT) {
+    WARNING("Not a stardard bit count: expected %u-bit but got %u-bit.",
+            STD_BIT_COUNT, biheader.bi_bitcnt);
+    return 1;
+  }
+
+  bimg->bfHeader = bfheader;
+  bimg->biHeader = biheader;
+
+  bool topDown = (biheader.bi_height & 0x80000000) != 0;
+
+  word prows = topDown ? (biheader.bi_height & 0x7FFFFFFF) : biheader.bi_height;
+  word pcols = biheader.bi_width;
+  bimg->psize = pcols * prows;
+
+  Mat r = Mat(prows, pcols);
+  Mat g = Mat(prows, pcols);
+  Mat b = Mat(prows, pcols);
+
+  Mat_alloc(&r, prows, pcols);
+  Mat_alloc(&g, prows, pcols);
+  Mat_alloc(&b, prows, pcols);
+
+  word padding = (LINE_ALIGN - (pcols * 3) % LINE_ALIGN) % LINE_ALIGN;
+
+  for (dword row = 0; row < prows; row++) {
+    // relative row index in mat
+    dword _row = topDown ? row : (prows - 1 - row);
+
+    for (dword col = 0; col < pcols; col++) {
+      byte pixel[3];
+      if (IStream_readBytes(istream, pixel, 3) != 3) {
+        WARNING(
+            "Failed to read pixel bytes at [%lu,%lu]: expect at least 3 bytes.",
+            _row, col);
         return 1;
+      }
+
+      // packed index in mat
+      dword idx = _row * pcols + col;
+
+      // RRGGBB order
+      b.bytes[idx] = pixel[0]; // b channel
+      g.bytes[idx] = pixel[1]; // g channel
+      r.bytes[idx] = pixel[2]; // r channel
     }
-    
-    BFHeader bfheader;
-    uint64_t bfheader_bytes = IStream_readBytes(istream, (byte *)&bfheader, sizeof(BFHeader));
-    if (bfheader_bytes != sizeof(BFHeader))
-    {
-        WARNING("Failed to parse the Bitmap File Header: expect %zu bytes but got %zu bytes", sizeof(BFHeader), bfheader_bytes);
+
+    // skip padding bytes
+    if (padding > 0) {
+      byte padBytes[3] = {0};
+      if (IStream_readBytes(istream, padBytes, padding) != padding) {
+        WARNING("Incorrect padding at line %lu", _row);
         return 1;
+      }
     }
+  }
 
-    word bi_size;
-    uint64_t ret = IStream_readWord(istream, &bi_size);
-    if (ret != 4)
-    {
-        WARNING("Failed to parse the Bitmap Info Size: expect 4 bytes but got %zu bytes", ret);
-        return 1;
-    }
-    else if (bi_size != STD_BIHEADER_LEN) {
-        // TODO
-        WARNING("Not a standard Bitmap Info Size: expect %u bytes but got %u bytes", STD_BIHEADER_LEN, bi_size);
-        return 1;
-    }
+  Mat_copy(&bimg->r, &r);
+  Mat_copy(&bimg->g, &g);
+  Mat_copy(&bimg->b, &b);
+  bimg->a.bytes = NULL;
 
-    
-    BIHeader biheader;
-    biheader.bi_size = bi_size;
-    uint64_t biheader_bytes = IStream_readBytes(istream, 
-                                (byte *)&biheader + sizeof(bi_size), 
-                                sizeof(BIHeader) - sizeof(bi_size));
-    
-    if (biheader_bytes != (sizeof(BIHeader) - sizeof(bi_size)))
-    {
-        WARNING("Failed to parse the Bitmap Info Header: expected %zu bytes but got %zu bytes", sizeof(BIHeader), biheader_bytes + sizeof(bi_size));
-        return 1;
-    }
-
-    if (biheader.bi_compress != STD_COMPRESS_TYPE)
-    {
-        WARNING("Not a standard compress type: only no-compressed type(0) is supported.");
-        return 1;
-    }
-    
-    if (biheader.bi_bitcnt != STD_BIT_COUNT)
-    {
-        WARNING("Not a stardard bit count: expected %u-bit but got %u-bit.", STD_BIT_COUNT, biheader.bi_bitcnt);
-        return 1;
-    }
-
-
-    bimg->bfHeader = bfheader;
-    bimg->biHeader = biheader;
-
-    bool topDown = (biheader.bi_height & 0x80000000) != 0;
-
-    word prows = topDown ? (biheader.bi_height & 0x7FFFFFFF) : biheader.bi_height;
-    word pcols = biheader.bi_width;
-    bimg->psize = pcols * prows;
-
-    Mat r = Mat(prows, pcols);
-    Mat g = Mat(prows, pcols);
-    Mat b = Mat(prows, pcols);
-
-    Mat_alloc(&r, prows, pcols);
-    Mat_alloc(&g, prows, pcols);
-    Mat_alloc(&b, prows, pcols);
-
-    word padding = (LINE_ALIGN - (pcols * 3) % LINE_ALIGN) % LINE_ALIGN;
-
-    for (dword row = 0; row < prows; row++) {
-        // relative row index in mat
-        dword _row = topDown ? row : (prows - 1 - row);
-
-        for (dword col = 0; col < pcols; col++) {
-            byte pixel[3];
-            if (IStream_readBytes(istream, pixel, 3) != 3) {
-                WARNING("Failed to read pixel bytes at [%lu,%lu]: expect at least 3 bytes.", _row, col);
-                return 1;
-            }
-            
-            // packed index in mat
-            dword idx = _row * pcols + col;
-            
-            // RRGGBB order
-            b.bytes[idx] = pixel[0];  // b channel
-            g.bytes[idx] = pixel[1];  // g channel
-            r.bytes[idx] = pixel[2];  // r channel
-        }
-        
-        // skip padding bytes
-        if (padding > 0) {
-            byte padBytes[3] = {0};
-            if (IStream_readBytes(istream, padBytes, padding) != padding) {
-                WARNING("Incorrect padding at line %lu", _row);
-                return 1;
-            }
-        }
-    }
-
-    Mat_copy(&bimg->r, &r);
-    Mat_copy(&bimg->g, &g);
-    Mat_copy(&bimg->b, &b);
-    bimg->a.bytes = NULL;
-
-    return 0;
+  return 0;
 }
 
 int BMPImage_encode(BMPImage *bimg, OStream *ostream)
@@ -561,7 +568,7 @@ int BMPImage_rotate(BMPImage *dst, const BMPImage *src, double angle)
 
 int BMPImage_scale(BMPImage *dst, const BMPImage *src, 
                 double scaleX, double scaleY)
-{ //! fault in scale < 1
+{
     if (!dst || !src)
     {
         WARNING("Arguments of input can't be empty!");
@@ -647,32 +654,35 @@ int BMPImage_flip(BMPImage *dst, const BMPImage *src,
 int BMPImage_fft_transform(BMPImage *dst, const BMPImage *src, bool shift)
 {
   FFTMat rmat, gmat, bmat;
-  word _width = src->biHeader.bi_width;
+  word width = src->biHeader.bi_width;
   bool topDown = (src->biHeader.bi_height & 0x80000000) != 0;
-  word _height = topDown ? (src->biHeader.bi_height & 0x7FFFFFFF)
+  word height = topDown ? (src->biHeader.bi_height & 0x7FFFFFFF)
                         : src->biHeader.bi_height;
-  word k = 0;
-  while (1 << k < _width)
-    ++k;
-  word width = 1 << k;
-  k = 0;
-  while (1 << k < _height)
-    ++k;
-  word height = 1 << k;
-  int ret = FFTMat_alloc(&rmat, height, width) ||
-            FFTMat_alloc(&gmat, height, width) ||
-            FFTMat_alloc(&bmat, height, width);
+  word newWidth = 1, newHeight = 1;
+  while (newWidth < width)
+    newWidth <<= 1;
+  while (newHeight < height)
+    newHeight <<= 1;
+  int ret = FFTMat_alloc(&rmat, newHeight, newWidth) ||
+            FFTMat_alloc(&gmat, newHeight, newWidth) ||
+            FFTMat_alloc(&bmat, newHeight, newWidth);
   if (ret)
     return 1;
   
-  for (size_t i = 0; i < _height; ++i) {
-    for (size_t j = 0; j < _width; ++j) {
-      rmat.cdata[i * _width + j] = src->r.bytes[i * _width + j];
-      gmat.cdata[i * _width + j] = src->g.bytes[i * _width + j];
-      bmat.cdata[i * _width + j] = src->b.bytes[i * _width + j];
+  for (size_t i = 0; i < newHeight; ++i) {
+    for (size_t j = 0; j < newWidth; ++j) {
+      if (i < height && j < width) {
+        rmat.cdata[i * newWidth + j] = src->r.bytes[i * width + j] + 0.0 * I;
+        gmat.cdata[i * newWidth + j] = src->g.bytes[i * width + j] + 0.0 * I;
+        bmat.cdata[i * newWidth + j] = src->b.bytes[i * width + j] + 0.0 * I;
+      } else {
+        rmat.cdata[i * newWidth + j] = 0.0 + 0.0 * I;
+        gmat.cdata[i * newWidth + j] = 0.0 + 0.0 * I;
+        bmat.cdata[i * newWidth + j] = 0.0 + 0.0 * I;
+      }
+        
     }
   }
-  NOTION("Got here!");
   fft2d(&rmat, false);
   fft2d(&gmat, false);
   fft2d(&bmat, false);
@@ -682,25 +692,352 @@ int BMPImage_fft_transform(BMPImage *dst, const BMPImage *src, bool shift)
     fft_shift(&bmat);
   }
 
-  Mat_alloc(&dst->r, height, width);
-  Mat_alloc(&dst->g, height, width);
-  Mat_alloc(&dst->b, height, width);
-
+  Mat_alloc(&dst->r, newHeight, newWidth);
+  Mat_alloc(&dst->g, newHeight, newWidth);
+  Mat_alloc(&dst->b, newHeight, newWidth);
   fft_magnitude(&dst->r, &rmat);
   fft_magnitude(&dst->g, &gmat);
   fft_magnitude(&dst->b, &bmat);
 
-  BFHeader bfheader = STD_BFHeader(width, height, (STD_BIT_COUNT / 8));
-  BIHeader biheader = STD_BIHeader(width, height, (STD_BIT_COUNT / 8),
+  BFHeader bfheader = STD_BFHeader(newWidth, newHeight, (STD_BIT_COUNT / 8));
+  BIHeader biheader = STD_BIHeader(newWidth, newHeight, (STD_BIT_COUNT / 8),
                                    src->biHeader.pixels_per_meter_h,
                                    src->biHeader.pixels_per_meter_v);
   dst->bfHeader = bfheader;
   dst->biHeader = biheader;
-  dst->psize = width * height;
+  dst->psize = newWidth * newHeight;
   FFTMat_release(&rmat);
   FFTMat_release(&gmat);
   FFTMat_release(&bmat);
   return 0;
 }
 
+char* BMP_asciiart(BMPImage *src) {
+  if (!src) {
+    WARNING("Arguments of input can't be empty!");
+    return NULL;
+  }
+  word width = src->biHeader.bi_width;
+  bool topDown = (src->biHeader.bi_height & 0x80000000) != 0;
+  word height = topDown ? (src->biHeader.bi_height & 0x7FFFFFFF)
+                        : src->biHeader.bi_height;
+  double scaleX = (double)ART_MAX_LINE_BUFFER / width;
+  if (scaleX > 1.0)
+    scaleX = 1.0;
+  double scaleY = scaleX / 2.5;
+  word newWidth = scaleX * width;
+  word newHeight = scaleY * height;
 
+  char *buf = (char *)malloc((newHeight * (newWidth + 1) + 1) * sizeof(char));
+  if (!buf)
+    return NULL;
+//   //? dbg
+//   NOTION("scale: %lf", scaleX);
+//   NOTION("newWidth: %u", newWidth);
+//   NOTION("newHeight %u", newHeight);
+//   //? dbg
+  BMPImage scaledImg = BMPImage_0();
+  BMPImage_scale(&scaledImg, src, scaleX, scaleY);
+  BMPImage_cvtclr(&scaledImg, "rgb2gray");
+//   for (size_t i = 0; i < newHeight; i++) {
+//     for (size_t j = 0; j < newWidth; j++) {
+//       size_t binval = scaledImg.r.bytes[i * (newWidth + 1) + j] / 14;
+//       //   NOTION("binval %lu", binval);
+//       buf[i * (newWidth + 1) + j] = LEVELS[binval];
+//     }
+//     buf[(i + 1) * newWidth + i] = '\n';
+//   }
+  size_t i = 0;
+  for (size_t j = 0; j < newHeight; j++) {
+    for (size_t k = 0; k < newWidth; k++) {
+      size_t binval = scaledImg.r.bytes[j * newWidth + k] / 14;
+      //   NOTION("binval %lu", binval);
+      buf[i++] = LEVELS[binval];
+    }
+    buf[i++] = '\n';
+  }
+    buf[i] = '\0';
+  BMPImage_release(&scaledImg);
+      return buf;
+}
+
+int BMPImage_conv(BMPImage *res, const BMPImage *basis, const BMPImage *kernel,
+                  size_t stride_x, size_t stride_y,
+                  bool is_padding) {
+  if (!res || !basis || !kernel) {
+    WARNING("Arguments of input can't be empty!");
+    return MAT_NULL_POINTER;
+  }
+
+  size_t output_rows, output_cols;
+
+  // if (is_padding) {
+  //   // With padding, output size remains the same as input (when stride=1)
+  //   output_rows = (basis->r->rows - 1) / stride_y + 1;
+  //   output_cols = (basis->cols - 1) / stride_x + 1;
+  // } else {
+  //   // Without padding, output size shrinks
+  //   output_rows = (basis->rows - k_rows) / stride_y + 1;
+  //   output_cols = (basis->cols - k_cols) / stride_x + 1;
+  // }
+
+  return 0;
+}
+
+int BMPImage_line(BMPImage *bimg, Line l, color clr) {
+  if (!bimg || !bimg->r.bytes || !bimg->g.bytes || !bimg->b.bytes) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+
+  word width = bimg->biHeader.bi_width;
+  bool topDown = (bimg->biHeader.bi_height & 0x80000000) != 0;
+  word height = topDown ? (bimg->biHeader.bi_height & 0x7FFFFFFF)
+                        : bimg->biHeader.bi_height;
+
+  if (l.stroke < 0.5)
+    l.stroke = 0.5;
+
+  int dx = abs(l.x1 - l.x0), sx = l.x0 < l.x1 ? 1 : -1;
+  int dy = abs(l.y1 - l.y0), sy = l.y0 < l.y1 ? 1 : -1;
+  int err = dx - dy;
+
+  double ed = dx + dy == 0 ? 1.0 : sqrtf64((double)dx * dx + (double)dy * dy);
+  double wd = (l.stroke + 1.0) / 2.0; // 半线宽
+  // double inv_ed = 1.0f / ed;              // 除法转为乘法
+  // double wd_minus_1 = wd - 1.0f;          // 预计算线宽减1
+
+#define BLEND_PIXEL(px, py)                                             \
+  do {                                                                         \
+    if ((px) >= 0 && (px) < width && (py) >= 0 && (py) < height) {             \
+      size_t idx = (py)*width + (px);                                          \
+      bimg->r.bytes[idx] = clr.rgb[2];                                       \
+      bimg->g.bytes[idx] = clr.rgb[1];                                       \
+      bimg->b.bytes[idx] = clr.rgb[0];                                       \
+    }                                                                          \
+  } while (0)
+  // #define BLEND_PIXEL(px, py, alpha)                                             \
+  // do {                                                                         \
+  //   if ((px) >= 0 && (px) < width && (py) >= 0 && (py) < height) {             \
+  //     size_t idx = (py)*width + (px);                                          \
+  //     bimg->r.bytes[idx] =                                                     \
+  //         (uint8_t)(             \
+  //                   (float)clr.rgb[2]);                                       \
+  //     bimg->g.bytes[idx] =                                                     \
+  //         (uint8_t)(             \
+  //                   (float)clr.rgb[1]);                                       \
+  //     bimg->b.bytes[idx] =                                                     \
+  //         (uint8_t)( +             \
+  //                   (float)clr.rgb[0]);                                       \
+  //   }                                                                          \
+  // } while (0)
+  for (;;) {
+    // 简化强度计算
+    double alpha =
+        fmaxf64(0.0, 1.0 - (abs(err - dx + dy) / ed - wd + 1));
+    BLEND_PIXEL(l.x0, l.y0);
+
+    int e2 = err, x2 = l.x0;
+
+    // X步进
+    if (2 * e2 >= -dx) {
+      e2 += dy;
+      for (int y2 = l.y0; e2 < ed * wd && (l.y1 != y2 || dx > dy);
+           e2 += dx) {
+        y2 += sy;
+        alpha = fmaxf64(0.0, 1.0 - (abs(e2) / ed - wd + 1));
+        BLEND_PIXEL(l.x0, y2);
+      }
+
+      if (l.x0 == l.x1)
+        break;
+      e2 = err;
+      err -= dy;
+      l.x0 += sx;
+    }
+
+    // Y步进
+    if (2 * e2 <= dy) {
+      for (e2 = dx - e2; e2 < ed * wd && (l.x1 != x2 || dx < dy); e2 += dy) {
+          x2 += sx;
+          alpha = fmaxf64(0.0, 1.0 - (abs(e2) / ed - wd + 1));
+          BLEND_PIXEL(x2, l.y0);
+      }
+      
+      if (l.y0 == l.y1) 
+        break;
+      err += dx; l.y0 += sy;
+  }
+  }
+
+  #undef BLEND_PIXEL
+  return 0;
+}
+
+int BMPImage_rect(BMPImage *bimg, Rect rect, color clr) {
+  if (!bimg || !bimg->r.bytes || !bimg->g.bytes || !bimg->b.bytes) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+
+  word width = bimg->biHeader.bi_width;
+  bool topDown = (bimg->biHeader.bi_height & 0x80000000) != 0;
+  word height = topDown ? (bimg->biHeader.bi_height & 0x7FFFFFFF)
+                        : bimg->biHeader.bi_height;
+
+  int sx = rect.dx > 0 ? rect.x : rect.x + rect.dx;
+  int sy = rect.dy > 0 ? rect.y : rect.y + rect.dy;
+  int ex = sx + abs(rect.dx), ey = sy + abs(rect.dy);
+
+  if (sx < 0) {
+    sx = 0;
+  } else if (sx >= width) {
+    sx = width - 1;
+  }
+  if (sy < 0) {
+    sy = 0;
+  } else if (sy >= height) {
+    sy = height - 1;
+  }
+  if (ex < 0) {
+    ex = 0;
+  } else if (ex >= width) {
+    ex = width - 1;
+  }
+  if (ey < 0) {
+    ey = 0;
+  } else if (ey >= height) {
+    ey = height - 1;
+  }
+
+  Mat_fillr(&bimg->r, sx, sy, ex, ey, clr.rgb[2]);
+  Mat_fillr(&bimg->g, sx, sy, ex, ey, clr.rgb[1]);
+  Mat_fillr(&bimg->b, sx, sy, ex, ey, clr.rgb[0]);
+
+  return 0;
+}
+
+int BMPImage_circle(BMPImage *bimg, Circle c, color clr) {
+
+  if (!bimg || !bimg->r.bytes || !bimg->g.bytes || !bimg->b.bytes) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+
+  word width = bimg->biHeader.bi_width;
+  bool topDown = (bimg->biHeader.bi_height & 0x80000000) != 0;
+  word height = topDown ? (bimg->biHeader.bi_height & 0x7FFFFFFF)
+                        : bimg->biHeader.bi_height;
+  int r = c.radius, x = r, y = 0, err = 0, i;
+  // double inv_r = 1.0 / r;
+#define BLEND_PIXEL(px, py, alpha)                                             \
+  do {                                                                         \
+    if ((px) >= 0 && (px) < width && (py) >= 0 && (py) < height) {             \
+      size_t idx = (py)*width + (px);                                          \
+      bimg->r.bytes[idx] =                                                     \
+          (uint8_t)((double)bimg->r.bytes[idx] * (1.0f - (alpha)) +            \
+                    (double)clr.rgb[2] * (alpha));                             \
+      bimg->g.bytes[idx] =                                                     \
+          (uint8_t)((double)bimg->g.bytes[idx] * (1.0f - (alpha)) +            \
+                    (double)clr.rgb[1] * (alpha));                             \
+      bimg->b.bytes[idx] =                                                     \
+          (uint8_t)((double)bimg->b.bytes[idx] * (1.0f - (alpha)) +            \
+                    (double)clr.rgb[0] * (alpha));                             \
+    }                                                                          \
+  } while (0)
+
+  for (r = 2 * r + 1; x > 0; err += ++y * 2 - 1) {
+    if (err + 2 * x + 1 < r)
+      err += ++x * 2 - 1;
+    for (; err > 0; err -= --x * 2 + 1) {
+      double alpha = (double)err / r;
+      BLEND_PIXEL(c.rx + x, c.ry + y, 1.0 - alpha);
+      BLEND_PIXEL(c.rx - y, c.ry + x, 1.0 - alpha);
+      BLEND_PIXEL(c.rx - x, c.ry - y, 1.0 - alpha);
+      BLEND_PIXEL(c.rx + y, c.ry - x, 1.0 - alpha);
+    }
+    for (i = x; i > 0; i--) {
+      BLEND_PIXEL(c.rx + i, c.ry + y, 1.0);
+      BLEND_PIXEL(c.rx - y, c.ry + i, 1.0);
+      BLEND_PIXEL(c.rx - i, c.ry - y, 1.0);
+      BLEND_PIXEL(c.rx + y, c.ry - i, 1.0);
+    }
+  }
+  BLEND_PIXEL(c.rx, c.ry, 1.0);
+
+  return 0;
+}
+
+int BMPImage_noise_pepper(BMPImage *bimg, double prob) {
+  if (!bimg || !bimg->r.bytes || !bimg->g.bytes || !bimg->b.bytes) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+  if (prob < 0 || prob > 1) {
+    WARNING("Probablity %lf is not within range [0, 1].", prob);
+    return 1;
+  }
+
+  for (size_t i = 0; i < bimg->psize; i++) {
+    if (rand() < prob * RAND_MAX) {
+      if (rand() < RAND_MAX >> 1) {
+        bimg->r.bytes[i] = bimg->g.bytes[i] = bimg->b.bytes[i] = 0;
+      } else {
+        bimg->r.bytes[i] = bimg->g.bytes[i] = bimg->b.bytes[i] = 255;
+      }
+    }
+  }
+
+  return 0;
+}
+
+int BMPImage_clip(BMPImage *bimg, Rect rect) {
+  if (!bimg || !bimg->r.bytes || !bimg->g.bytes || !bimg->b.bytes) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+
+  word width = bimg->biHeader.bi_width;
+  bool topDown = (bimg->biHeader.bi_height & 0x80000000) != 0;
+  word height = topDown ? (bimg->biHeader.bi_height & 0x7FFFFFFF)
+                        : bimg->biHeader.bi_height;
+
+  int sx = rect.dx > 0 ? rect.x : rect.x + rect.dx;
+  int sy = rect.dy > 0 ? rect.y : rect.y + rect.dy;
+  int ex = sx + abs(rect.dx), ey = sy + abs(rect.dy);
+
+  if (sx < 0) {
+    sx = 0;
+  } else if (sx >= width) {
+    sx = width - 1;
+  }
+  if (sy < 0) {
+    sy = 0;
+  } else if (sy >= height) {
+    sy = height - 1;
+  }
+  if (ex < 0) {
+    ex = 0;
+  } else if (ex >= width) {
+    ex = width - 1;
+  }
+  if (ey < 0) {
+    ey = 0;
+  } else if (ey >= height) {
+    ey = height - 1;
+  }
+
+  word newWidth = ex - sx;
+  word newHeight = ey - sy;
+
+  Mat_clip(&bimg->r, sx, sy, ex, ey);
+  Mat_clip(&bimg->g, sx, sy, ex, ey);
+  Mat_clip(&bimg->b, sx, sy, ex, ey);
+
+  bimg->bfHeader = STD_BFHeader(newWidth, newHeight, STD_BIT_COUNT / 8);
+  bimg->biHeader = STD_BIHeader(newWidth, newHeight, (STD_BIT_COUNT / 8),
+                                bimg->biHeader.pixels_per_meter_h,
+                                bimg->biHeader.pixels_per_meter_v);
+  bimg->psize = newWidth * newHeight;
+  return 0;
+}

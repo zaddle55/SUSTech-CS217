@@ -2,7 +2,11 @@
 #include "../inc/test.h"
 
 static const char* bmp_path_1 = "./img/test1.bmp";
-static const char* bmp_path_2 = "./img/test2.bmp";
+static const char *bmp_path_2 = "./img/test2.bmp";
+static const char *bmp_path_3 = "./img/test3.bmp";
+static const char *bmp_path_4 = "./img/test4.bmp";
+static const char *bmp_path_5 = "./img/test5.bmp";
+static const char *bmp_path_6 = "./img/test6.bmp";
 
 TEST(basic_decode)
 {
@@ -14,7 +18,7 @@ TEST(basic_decode)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
+    BMPImage bimg = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -38,7 +42,7 @@ TEST(basic_encode)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
+    BMPImage bimg = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -80,7 +84,7 @@ TEST(cvtclr_rgb2bgr)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
+    BMPImage bimg = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -124,7 +128,7 @@ TEST(cvtclr_rgb2hsv)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
+    BMPImage bimg = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -173,7 +177,7 @@ TEST(cvtclr_rgb2gray)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
+    BMPImage bimg = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -222,7 +226,7 @@ TEST(cvtclr_hsv2rgb)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
+    BMPImage bimg = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -271,7 +275,7 @@ TEST(cvtclr_hsv2gray)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
+    BMPImage bimg = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -315,8 +319,8 @@ TEST(bmp_rotate)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
-    BMPImage res = BMPImage();
+    BMPImage bimg = BMPImage_0();
+    BMPImage res = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -362,8 +366,8 @@ TEST(bmp_scale)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
-    BMPImage res = BMPImage();
+    BMPImage bimg = BMPImage_0();
+    BMPImage res = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -409,8 +413,8 @@ TEST(bmp_translate)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
-    BMPImage res = BMPImage();
+    BMPImage bimg = BMPImage_0();
+    BMPImage res = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -456,8 +460,8 @@ TEST(bmp_flip)
     IStream istream = Stream(istream);
     IStream_fromFileStream(&istream, fp);
     fclose(fp);
-    BMPImage bimg = BMPImage();
-    BMPImage res = BMPImage();
+    BMPImage bimg = BMPImage_0();
+    BMPImage res = BMPImage_0();
     if (BMPImage_decode(&bimg, &istream) != 0)
     {
         perror("Failed to decode bmp image");
@@ -493,51 +497,313 @@ TEST(bmp_flip)
     fclose(fp);
 }
 
-// TEST(bmp_fft) {
-//   FILE *fp = fopen(bmp_path_1, "rb");
-//   if (fp == NULL) {
-//     perror("Error opening file\n");
-//     return;
-//   }
-//   IStream istream = Stream(istream);
-//   IStream_fromFileStream(&istream, fp);
-//   fclose(fp);
-//   BMPImage bimg = BMPImage();
-//   BMPImage res = BMPImage();
-//   if (BMPImage_decode(&bimg, &istream) != 0) {
-//     perror("Failed to decode bmp image");
-//     IStream_close(&istream);
-//     return;
-//   }
-//   // NOTION("Got here");
-//   IStream_close(&istream);
+TEST(bmp_art) {
+  FILE *fp = fopen(bmp_path_6, "rb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  IStream istream = Stream(istream);
+  IStream_fromFileStream(&istream, fp);
+  fclose(fp);
+  BMPImage bimg = BMPImage_0();
+  if (BMPImage_decode(&bimg, &istream) != 0) {
+    perror("Failed to decode bmp image");
+    IStream_close(&istream);
+    return;
+  }
+  // NOTION("Got here");
+  IStream_close(&istream);
 
-//   BMPImage_dbg(&bimg, stdout);
-//   BMPImage_fft_transform(&res, &bimg, true);
-//   BMPImage_dbg(&res, stdout);
+  BMPImage_dbg(&bimg, stdout);
 
-//   OStream ostream = Stream(ostream);
-//   if (BMPImage_encode(&res, &ostream) != 0) {
-//     perror("Failed to encode bmp image");
-//     OStream_close(&ostream);
-//     BMPImage_release(&bimg);
-//     BMPImage_release(&res);
-//     return;
-//   }
+  char *buf = BMP_asciiart(&bimg);
+  fp = fopen("ascii.txt", "wb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  fprintf(fp, "%s", buf);
+  fclose(fp);
+  BMPImage_release(&bimg);
+  free(buf);
+}
 
-//   fp = fopen("out11.bmp", "wb");
-//   if (fp == NULL) {
-//     perror("Error opening file\n");
-//     return;
-//   }
-//   OStream_toFileStream(&ostream, fp);
-//   OStream_close(&ostream);
-//   BMPImage_release(&bimg);
-//   BMPImage_release(&res);
-//   fclose(fp);
-// }
+TEST(bmp_fft) {
+  FILE *fp = fopen(bmp_path_5, "rb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  IStream istream = Stream(istream);
+  IStream_fromFileStream(&istream, fp);
+  fclose(fp);
+  BMPImage bimg = BMPImage_0();
+  BMPImage res = BMPImage_0();
+  if (BMPImage_decode(&bimg, &istream) != 0) {
+    perror("Failed to decode bmp image");
+    IStream_close(&istream);
+    return;
+  }
+  // NOTION("Got here");
+  IStream_close(&istream);
 
-int main()
+  __BMPImage_cvtclr_rgb2gray(&bimg);
+  BMPImage_dbg(&bimg, stdout);
+  BMPImage_fft_transform(&res, &bimg, true);
+  
+  BMPImage_dbg(&res, stdout);
+
+  OStream ostream = Stream(ostream);
+  if (BMPImage_encode(&res, &ostream) != 0) {
+    perror("Failed to encode bmp image");
+    OStream_close(&ostream);
+    BMPImage_release(&bimg);
+    BMPImage_release(&res);
+    return;
+  }
+
+  fp = fopen("out11.bmp", "wb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  OStream_toFileStream(&ostream, fp);
+  OStream_close(&ostream);
+  BMPImage_release(&bimg);
+  BMPImage_release(&res);
+  fclose(fp);
+}
+
+TEST(bmp_line)
 {
+    FILE* fp = fopen(bmp_path_1, "rb");
+    if (fp == NULL) {
+        perror("Error opening file\n");
+        return;
+    }
+    IStream istream = Stream(istream);
+    IStream_fromFileStream(&istream, fp);
+    fclose(fp);
+    BMPImage bimg = BMPImage_0();
+    if (BMPImage_decode(&bimg, &istream) != 0)
+    {
+        perror("Failed to decode bmp image");
+        IStream_close(&istream);
+        return;
+    }
+    // NOTION("Got here");
+    IStream_close(&istream);
+    
+    BMPImage_dbg(&bimg, stdout);
+    color black;
+    rgb(black, 0x00, 0x00, 0x00);
+    color cyan;
+    rgb(cyan, 0x00, 0xff, 0xff);
+    Line l = {0, 100, 100, 600, 10};
+    BMPImage_line(&bimg, l, cyan);
+    BMPImage_dbg(&bimg, stdout);
+
+    OStream ostream = Stream(ostream);
+    if (BMPImage_encode(&bimg, &ostream) != 0)
+    {
+        perror("Failed to encode bmp image");
+        OStream_close(&ostream);
+        BMPImage_release(&bimg);
+        return;
+    }
+
+    fp = fopen("out12.bmp", "wb");
+    if (fp == NULL) {
+        perror("Error opening file\n");
+        return;
+    }
+    OStream_toFileStream(&ostream, fp);
+    OStream_close(&ostream);
+    BMPImage_release(&bimg);
+    fclose(fp);
+}
+
+TEST(bmp_rect) {
+  FILE *fp = fopen(bmp_path_1, "rb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  IStream istream = Stream(istream);
+  IStream_fromFileStream(&istream, fp);
+  fclose(fp);
+  BMPImage bimg = BMPImage_0();
+  if (BMPImage_decode(&bimg, &istream) != 0) {
+    perror("Failed to decode bmp image");
+    IStream_close(&istream);
+    return;
+  }
+  // NOTION("Got here");
+  IStream_close(&istream);
+
+  BMPImage_dbg(&bimg, stdout);
+  color black;
+  rgb(black, 0x00, 0x00, 0x00);
+  color cyan;
+  rgb(cyan, 0x00, 0xff, 0xff);
+  Rect r = {2, 40, 700, 689};
+  BMPImage_rect(&bimg, r, cyan);
+  BMPImage_dbg(&bimg, stdout);
+
+  OStream ostream = Stream(ostream);
+  if (BMPImage_encode(&bimg, &ostream) != 0) {
+    perror("Failed to encode bmp image");
+    OStream_close(&ostream);
+    BMPImage_release(&bimg);
+    return;
+  }
+
+  fp = fopen("out14.bmp", "wb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  OStream_toFileStream(&ostream, fp);
+  OStream_close(&ostream);
+  BMPImage_release(&bimg);
+  fclose(fp);
+}
+
+TEST(bmp_circle) {
+  FILE *fp = fopen(bmp_path_1, "rb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  IStream istream = Stream(istream);
+  IStream_fromFileStream(&istream, fp);
+  fclose(fp);
+  BMPImage bimg = BMPImage_0();
+  if (BMPImage_decode(&bimg, &istream) != 0) {
+    perror("Failed to decode bmp image");
+    IStream_close(&istream);
+    return;
+  }
+  // NOTION("Got here");
+  IStream_close(&istream);
+
+  BMPImage_dbg(&bimg, stdout);
+  color black;
+  rgb(black, 0x00, 0x00, 0x00);
+  color cyan;
+  rgb(cyan, 0x00, 0xff, 0xff);
+  Circle c = {50.0, 422, 96};
+  BMPImage_circle(&bimg, c, cyan);
+  BMPImage_dbg(&bimg, stdout);
+
+  OStream ostream = Stream(ostream);
+  if (BMPImage_encode(&bimg, &ostream) != 0) {
+    perror("Failed to encode bmp image");
+    OStream_close(&ostream);
+    BMPImage_release(&bimg);
+    return;
+  }
+
+  fp = fopen("out13.bmp", "wb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  OStream_toFileStream(&ostream, fp);
+  OStream_close(&ostream);
+  BMPImage_release(&bimg);
+  fclose(fp);
+}
+
+TEST(bmp_pepper_salt) {
+  FILE *fp = fopen(bmp_path_1, "rb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  IStream istream = Stream(istream);
+  IStream_fromFileStream(&istream, fp);
+  fclose(fp);
+  BMPImage bimg = BMPImage_0();
+  if (BMPImage_decode(&bimg, &istream) != 0) {
+    perror("Failed to decode bmp image");
+    IStream_close(&istream);
+    return;
+  }
+  // NOTION("Got here");
+  IStream_close(&istream);
+
+  BMPImage_dbg(&bimg, stdout);
+  BMPImage_noise_pepper(&bimg, 0.1);
+  BMPImage_dbg(&bimg, stdout);
+
+  OStream ostream = Stream(ostream);
+  if (BMPImage_encode(&bimg, &ostream) != 0) {
+    perror("Failed to encode bmp image");
+    OStream_close(&ostream);
+    BMPImage_release(&bimg);
+    return;
+  }
+
+  fp = fopen("out14.bmp", "wb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  OStream_toFileStream(&ostream, fp);
+  OStream_close(&ostream);
+  BMPImage_release(&bimg);
+  fclose(fp);
+}
+
+TEST(bmp_clip) {
+  FILE *fp = fopen(bmp_path_1, "rb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  IStream istream = Stream(istream);
+  IStream_fromFileStream(&istream, fp);
+  fclose(fp);
+  BMPImage bimg = BMPImage_0();
+  if (BMPImage_decode(&bimg, &istream) != 0) {
+    perror("Failed to decode bmp image");
+    IStream_close(&istream);
+    return;
+  }
+  // NOTION("Got here");
+  IStream_close(&istream);
+
+  BMPImage_dbg(&bimg, stdout);
+  color black;
+  rgb(black, 0x00, 0x00, 0x00);
+  color cyan;
+  rgb(cyan, 0x00, 0xff, 0xff);
+  Rect r = {100, 40, 700, 689};
+  BMPImage_clip(&bimg, r);
+  BMPImage_dbg(&bimg, stdout);
+
+  OStream ostream = Stream(ostream);
+  if (BMPImage_encode(&bimg, &ostream) != 0) {
+    perror("Failed to encode bmp image");
+    OStream_close(&ostream);
+    BMPImage_release(&bimg);
+    return;
+  }
+
+  fp = fopen("out15.bmp", "wb");
+  if (fp == NULL) {
+    perror("Error opening file\n");
+    return;
+  }
+  OStream_toFileStream(&ostream, fp);
+  OStream_close(&ostream);
+  BMPImage_release(&bimg);
+  fclose(fp);
+}
+
+int main() {
+  srand(time(NULL));
     run_all_tests();
 }

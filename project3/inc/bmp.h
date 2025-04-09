@@ -16,7 +16,9 @@
 #define STD_IMPORTANT_CLR 0
 #define LINE_ALIGN 4
 
-#define ABS(__x) (((__x) >= 0)? (__x) : -(__x))
+#define ART_MAX_LINE_BUFFER 150
+
+#define ABS(__x) (((__x) >= 0) ? (__x) : -(__x))
 
 typedef struct PACKED BitmapFileHeader_ {
     hword bf_type;
@@ -71,13 +73,21 @@ typedef struct BitmapImage {
     Mat a;
 } BMPImage;
 
-#define BMPImage() { \
-    .psize = 0, \
-    .r = Mat(0, 0), \
-    .g = Mat(0, 0), \
-    .b = Mat(0, 0), \
-    .a = Mat(0, 0) \
-}
+#define BMPImage_0()                                                           \
+  { .psize = 0, .r = Mat(0, 0), .g = Mat(0, 0), .b = Mat(0, 0), .a = Mat(0, 0) }
+#define BMPImage_4(__bimg, __w, __h, __x_resl, __y_resl)                       \
+  do {                                                                         \
+    BFHeader __bf = STD_BFHeader(__w, __h, __bpp);                             \
+    BIHeader __bi = STD_BIHeader(__w, __h, __bpp, __x_resl, __y_resl);         \
+    Mat_alloc(__bimg.r, __h, __w);                                             \
+    Mat_alloc(__bimg.g, __h, __w);                                             \
+    Mat_alloc(__bimg.b, __h, __w);                                             \
+    __bimg.a = Mat(0, 0);                                                      \
+    __bimg.psize = __w * __h;                                                  \
+    __bimg.bf = __bf;                                                          \
+    __bimg.bi = __bi;                                                          \
+  } while (0)
+
 int BMPImage_decode(BMPImage* bimg, IStream* istream);
 void BMPImage_dbg(const BMPImage *bimg, FILE *output);
 int BMPImage_resize(BMPImage *bimg, const word width, const word height);
@@ -90,11 +100,20 @@ int BMPImage_translate(BMPImage *dst, const BMPImage *src,
                     int deltaX, int deltaY);
 int BMPImage_flip(BMPImage *dst, const BMPImage *src, bool flipX, bool flipY);
 int BMPImage_fft_transform(BMPImage *dst, const BMPImage *src, bool shift);
+char* BMP_asciiart(BMPImage *src);
 
-    int __BMPImage_cvtclr_rgb2bgr(BMPImage *bimg);
+int __BMPImage_cvtclr_rgb2bgr(BMPImage *bimg);
 int __BMPImage_cvtclr_rgb2hsv(BMPImage *bimg);
 int __BMPImage_cvtclr_rgb2gray(BMPImage *bimg);
 int __BMPImage_cvtclr_hsv2rgb(BMPImage *bimg);
 int __BMPImage_cvtclr_hsv2gray(BMPImage *bimg);
+
+int BMPImage_line(BMPImage *bimg, Line l, color clr);
+int BMPImage_rect(BMPImage *bimg, Rect rect, color clr);
+int BMPImage_circle(BMPImage *bimg, Circle c, color clr);
+
+int BMPImage_noise_pepper(BMPImage *bimg, double prob);
+
+int BMPImage_clip(BMPImage *bimg, Rect rect);
 
 #endif

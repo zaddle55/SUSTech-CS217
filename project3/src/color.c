@@ -30,11 +30,10 @@ color cvtclr_rgb2hsv(color clr)
     vn = cmax;
     
     color _clr;
-    hsv(_clr, (uint8_t)(hn / 2), // 这里除以2可能是为了映射到0-180的范围
+    hsv(_clr, (uint8_t)(hn / 2), // 这里除以2是为了映射到0-180的范围
                       (uint8_t)(sn * 255), 
                       (uint8_t)(vn * 255));
     // 标准HSV：H范围0-360，S范围0-1，V范围0-1
-    // 如果要映射到0-255的整数范围:
     return _clr;
 }
 

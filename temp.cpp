@@ -16,6 +16,19 @@ using namespace std;
 //     cout << sizeof arr << endl;
 // }
 
+class Foo {
+    static int x;
+    float y;
+public:
+    Foo() : y(0) {}
+    void setX(int val) { x = val; int y = 0; y +=9.0 ;}
+    void setY(float val) { y = val; }
+    int getX() { return x; }
+    void print() {
+        cout << "x: " << x << ", y: " << y << endl;
+    }
+};
+
 int main() {
     float a = 409.2675;
     int _b = 0xc1a6fae1;
@@ -27,6 +40,11 @@ int main() {
     printf("b = %f\n", b);
     printf("c = %x\n", *(int*)&c);
     printf("d = %f\n", d);
+    printf("sizeof a = %zu\n", sizeof(Foo));
+    Foo f;
+    cout << "sizeof f = " << sizeof(f) << endl;
+    f.setX(10);
+    
     
     return 0;
 }

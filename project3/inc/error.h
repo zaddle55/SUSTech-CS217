@@ -31,10 +31,20 @@
 /// @brief Warning macro for warnings
 /// @param msg Message to print
 /// @details This macro prints a warning message
-#define WARNING(fmt, ...) do { \
-    fprintf(stderr, "\033[1;33m [WARNING]: \033[0m"); \
-    __ERR_OUT(fmt, ##__VA_ARGS__); \
-} while (0)
+#define WARNING(fmt, ...)                                                      \
+  do {                                                                         \
+    fprintf(stderr, "\033[1;33m [WARNING]: \033[0m");                          \
+    __ERR_OUT(fmt, ##__VA_ARGS__);                                             \
+  } while (0)
+
+/// @brief Warning macro for warnings
+/// @param msg Message to print
+/// @details This macro prints a warning message
+#define DBG(expr)                                                         \
+  do {                                                                         \
+    fprintf(stderr, "\033[1;32m [DEBUG]: \033[0m");                            \
+    __ERR_OUT("%s: %d\n", #expr, expr);                                                    \
+  } while (0)
 
 #define ANSI_RESET  "\x1b[0m"
 #define ANSI_RED     "\x1b[31m"
@@ -42,7 +52,7 @@
 #define ANSI_YELLOW  "\x1b[33m"
 #define ANSI_BLUE    "\x1b[34m"
 #define ANSI_PURPLE  "\x1b[35m"
-#define ANSI_CYAN    "\x1b[36m"
+#define ANSI_CYAN "\x1b[36m"
 
 /**
  * @brief print wavy line below the input string in different colors

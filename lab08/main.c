@@ -200,6 +200,7 @@ int main()
     free(c);
 
     // start timing on 1M vector adding, no output vec
+    printf("\n--- Timing on vector size of 8M ---\n");
     n = 1024 * 1024 * 8;
     a = rand_vec(n);
     b = rand_vec(n);
