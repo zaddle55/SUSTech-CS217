@@ -61,7 +61,7 @@ TEST(multiple_io)
     uint64_t n = IStream_readWord(&istream, &rw);
     assert(rw == w);
     byte b = 0;
-    uint64_t n1 = IStream_readByte(&istream, &b);
+    // uint64_t n1 = IStream_readByte(&istream, &b);
     assert(b = 0x0b);
     fprintf(stderr, "%ld\n", n);
     // assert(n == 4);
@@ -70,6 +70,31 @@ TEST(multiple_io)
     
 
     fclose(fp);
+}
+
+TEST(test_base64) {
+  FILE *fp = fopen("./img/test5.bmp", "rb");
+  if (fp == NULL) {
+    perror("Error opening file");
+    return;
+  }
+
+  IStream istream = Stream(istream);
+  IStream_fromFileStream(&istream, fp);
+  fclose(fp);
+  Stream_toBase64(&istream);
+
+  fp = fopen("test_1.txt", "wb");
+  if (fp == NULL) {
+    perror("Error opening file");
+    return;
+  }
+
+  OStream_toFileStream(&istream, fp);
+
+  // IStream_close(&istream);
+
+  fclose(fp);
 }
 
 int main(void)

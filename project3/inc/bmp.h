@@ -18,6 +18,12 @@
 
 #define ART_MAX_LINE_BUFFER 150
 
+#define CONFUSE_MODE
+#define CONFUSE_ADDAVG "add"
+#define CONFUSE_WEIGHTAVG "weight"
+#define CONFUSE_MAX "max"
+#define CONFUSE_GUASS "gauss"
+
 #define ABS(__x) (((__x) >= 0) ? (__x) : -(__x))
 
 typedef struct PACKED BitmapFileHeader_ {
@@ -40,6 +46,12 @@ typedef struct PACKED BitmapInfoHeader_ {
     word bi_clr_used;
     word bi_clr_important;
 } BIHeader;
+
+typedef struct Confuse_args_ {
+  bool valid;
+  double w1;
+  double w2;
+} Confuse_args;
 
 #define STD_BFHeader(__w, __h, __bpp) (BFHeader) { \
     .bf_type = STD_IMAGE_TYPE, \
@@ -73,19 +85,21 @@ typedef struct BitmapImage {
     Mat a;
 } BMPImage;
 
+typedef enum { OP_RULE_MAX, OP_RULE_AVG, OP_RULE_WEIGHT, OP_RULE_GAUSS } OpRule;
+
 #define BMPImage_0()                                                           \
   { .psize = 0, .r = Mat(0, 0), .g = Mat(0, 0), .b = Mat(0, 0), .a = Mat(0, 0) }
 #define BMPImage_4(__bimg, __w, __h, __x_resl, __y_resl)                       \
   do {                                                                         \
-    BFHeader __bf = STD_BFHeader(__w, __h, __bpp);                             \
-    BIHeader __bi = STD_BIHeader(__w, __h, __bpp, __x_resl, __y_resl);         \
-    Mat_alloc(__bimg.r, __h, __w);                                             \
-    Mat_alloc(__bimg.g, __h, __w);                                             \
-    Mat_alloc(__bimg.b, __h, __w);                                             \
+    BFHeader __bf = STD_BFHeader(__w, __h, STD_BIT_COUNT / 8);                 \
+    BIHeader __bi = STD_BIHeader(__w, __h, STD_BIT_COUNT / 8, __x_resl, __y_resl); \
+    Mat_alloc(&__bimg.r, __h, __w);                                             \
+    Mat_alloc(&__bimg.g, __h, __w);                                             \
+    Mat_alloc(&__bimg.b, __h, __w);                                             \
     __bimg.a = Mat(0, 0);                                                      \
     __bimg.psize = __w * __h;                                                  \
-    __bimg.bf = __bf;                                                          \
-    __bimg.bi = __bi;                                                          \
+    __bimg.bfHeader = __bf;                                                          \
+    __bimg.biHeader = __bi;                                                          \
   } while (0)
 
 int BMPImage_decode(BMPImage* bimg, IStream* istream);
@@ -107,6 +121,9 @@ int __BMPImage_cvtclr_rgb2hsv(BMPImage *bimg);
 int __BMPImage_cvtclr_rgb2gray(BMPImage *bimg);
 int __BMPImage_cvtclr_hsv2rgb(BMPImage *bimg);
 int __BMPImage_cvtclr_hsv2gray(BMPImage *bimg);
+int BMPImage_cvtclr(BMPImage *bimg, const char *mode);
+int BMPImage_confuse(BMPImage *dst, const BMPImage *src1,
+                         const BMPImage *src2, OpRule mode, Confuse_args args);
 
 int BMPImage_line(BMPImage *bimg, Line l, color clr);
 int BMPImage_rect(BMPImage *bimg, Rect rect, color clr);
@@ -115,5 +132,8 @@ int BMPImage_circle(BMPImage *bimg, Circle c, color clr);
 int BMPImage_noise_pepper(BMPImage *bimg, double prob);
 
 int BMPImage_clip(BMPImage *bimg, Rect rect);
+
+int BMPImage_conv(BMPImage *res, const BMPImage *basis, const BMPImage *kernel,
+                  size_t stride_x, size_t stride_y, bool is_padding);
 
 #endif

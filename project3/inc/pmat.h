@@ -69,8 +69,9 @@ MatErr Mat_swap(Mat *m1, Mat *m2);
 MatErr Mat_confuse_avg(Mat *res, const Mat *lhs, const Mat *rhs);
 MatErr Mat_confuse_weight(Mat *res, const Mat *lhs, const Mat *rhs,
                           const double lw, const double rw);
+MatErr Mat_confuse_max(Mat *res, const Mat *lhs, const Mat *rhs);
 MatErr Mat_pad(Mat *base, uint8_t padVal, size_t padL, size_t padT, size_t padR,
-               size_t padD);
+            size_t padD);
 MatErr Mat_fill(Mat* mat, const uint8_t value);
 MatErr Mat_fillr(Mat* mat, size_t sx, size_t sy, size_t ex, size_t ey, const uint8_t value);
 MatErr Mat_clip(Mat *base, size_t sx, size_t sy, size_t ex, size_t ey);
@@ -124,8 +125,8 @@ void fft_magnitude(Mat *u8mat, FFTMat *fmat);
 typedef double Matf_3x3[9];
 typedef double Matf_5x5[25];
 
-static Matf_3x3 LAPLACIAN_D3 = {0, -1, 0, -1, 4, -4, 0, -1, 0};
-static Matf_3x3 GAUSSIAN_D3 = {1, 2, 1, 2, 4, 2, 1, 2, 1};
-static Matf_3x3 GAUSSIAN_F3 = {};
+// static Matf_3x3 LAPLACIAN_D3 = {0, -1, 0, -1, 4, -4, 0, -1, 0};
+// static Matf_3x3 GAUSSIAN_D3 = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+// static Matf_3x3 GAUSSIAN_F3 = {};
 
 #endif

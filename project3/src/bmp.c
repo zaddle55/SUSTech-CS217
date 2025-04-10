@@ -1,5 +1,5 @@
 #include "../inc/bmp.h"
-
+#include <math.h>
 
 #define BIN_LEVEL 19
 static const char LEVELS[BIN_LEVEL + 1] = "@W#$OEXC[(/?=^~_.` ";
@@ -29,7 +29,6 @@ int BMPImage_decode(BMPImage * bimg, IStream *istream) {
             ret);
     return 1;
   } else if (bi_size != STD_BIHEADER_LEN) {
-    // TODO
     WARNING("Not a standard Bitmap Info Size: expect %u bytes but got %u bytes",
             STD_BIHEADER_LEN, bi_size);
     return 1;
@@ -259,11 +258,6 @@ void BMPImage_release(BMPImage* bimg)
     Mat_release(&bimg->a);
 }
 
-int __BMP_confuse_avg(BMPImage *bimg1, BMPImage* bimg2)
-{
-
-}
-
 int __BMPImage_cvtclr_rgb2bgr(BMPImage *bimg)
 {
     if (!bimg) return 0;
@@ -395,7 +389,7 @@ int __BMPImage_cvtclr_bgr2gray(BMPImage *bimg)
     return 0;
 }
 
-int BMPImage_cvtclr(BMPImage *bimg, char* mode)
+int BMPImage_cvtclr(BMPImage *bimg, const char* mode)
 {
     if (!mode) return 1;
     if (strcmp(mode, "rgb2hsv") == 0)
@@ -470,7 +464,10 @@ int __BMPImage_affine_transform(BMPImage *dst, const BMPImage *src, const Affine
     int err = Mat_alloc(&r, newHeight, newWidth) ||
     Mat_alloc(&g, newHeight, newWidth) ||
     Mat_alloc(&b, newHeight, newWidth);
-    if (err) return 1;
+    if (err) {
+        WARNING("Failed to allocate memory for the image channels");
+        return 1;
+    }
     
     // if (src->a.bytes != NULL) {
     //      Mat a = Mat(newHeight, newWidth);
@@ -522,7 +519,7 @@ int __BMPImage_affine_transform(BMPImage *dst, const BMPImage *src, const Affine
     Mat_copy(&dst->b, &b);
     dst->a.bytes = NULL;
     
-    return 1;
+    return 0;
 }
 
 int BMPImage_rotate(BMPImage *dst, const BMPImage *src, double angle)
@@ -761,6 +758,79 @@ char* BMP_asciiart(BMPImage *src) {
       return buf;
 }
 
+int __BMPImage_confuse_avg(BMPImage *dst, const BMPImage *lhs, const BMPImage *rhs) {
+
+  if (!dst || !lhs || !rhs) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+  int ret = Mat_confuse_avg(&dst->r, &lhs->r, &rhs->r) ||
+            Mat_confuse_avg(&dst->g, &lhs->g, &rhs->g) ||
+            Mat_confuse_avg(&dst->b, &lhs->b, &rhs->b);
+  if (ret != 0)
+    return ret;
+  else
+    return 0;
+}
+
+int __BMPImage_confuse_weight(BMPImage *dst, const BMPImage *lhs, const BMPImage *rhs, Confuse_args weights) {
+
+  if (!dst || !lhs || !rhs) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+  double lw = 0.5, rw = 0.5;
+  if (weights.valid) {
+    lw = weights.w1;
+    rw = weights.w2;
+  }
+  int ret = Mat_confuse_weight(&dst->r, &lhs->r, &rhs->r, lw, rw) ||
+            Mat_confuse_weight(&dst->g, &lhs->g, &rhs->g, lw, rw) ||
+            Mat_confuse_weight(&dst->b, &lhs->b, &rhs->b, lw, rw);
+  if (ret != 0)
+    return ret;
+  else
+    return 0;
+}
+
+int __BMPImage_confuse_max(BMPImage *dst, const BMPImage *lhs,
+                           const BMPImage *rhs) {
+
+  if (!dst || !lhs || !rhs) {
+    WARNING("Arguments of input can't be empty!");
+    return 1;
+  }
+  int ret = Mat_confuse_max(&dst->r, &lhs->r, &rhs->r) ||
+            Mat_confuse_max(&dst->g, &lhs->g, &rhs->g) ||
+            Mat_confuse_max(&dst->b, &lhs->b, &rhs->b);
+  if (ret != 0)
+    return ret;
+  else
+    return 0;
+}
+
+int BMPImage_confuse(BMPImage *dst, const BMPImage *src1, const BMPImage *src2,
+                     OpRule rule, Confuse_args args) {
+
+  word width = src1->biHeader.bi_width;
+  bool topDown = (src1->biHeader.bi_height & 0x80000000) != 0;
+  word height = topDown ? (src1->biHeader.bi_height & 0x7FFFFFFF)
+                        : src1->biHeader.bi_height;
+  BMPImage_4((*dst), width, height, src1->biHeader.pixels_per_meter_h, src1->biHeader.pixels_per_meter_v);
+
+  switch (rule) {
+  case OP_RULE_AVG:
+    return __BMPImage_confuse_avg(dst, src1, src2);
+  case OP_RULE_WEIGHT:
+    return __BMPImage_confuse_weight(dst, src1, src2, args);
+  case OP_RULE_MAX:
+    return __BMPImage_confuse_max(dst, src1, src2);
+  default:
+    WARNING("Unrecognized confusion mode!");
+    return 1;
+  }
+}
+
 int BMPImage_conv(BMPImage *res, const BMPImage *basis, const BMPImage *kernel,
                   size_t stride_x, size_t stride_y,
                   bool is_padding) {
@@ -769,18 +839,29 @@ int BMPImage_conv(BMPImage *res, const BMPImage *basis, const BMPImage *kernel,
     return MAT_NULL_POINTER;
   }
 
-  size_t output_rows, output_cols;
+  word width = basis->biHeader.bi_width;
+  bool topDown = (basis->biHeader.bi_height & 0x80000000) != 0;
+  word height = topDown ? (basis->biHeader.bi_height & 0x7FFFFFFF)
+                        : basis->biHeader.bi_height;
 
-  // if (is_padding) {
-  //   // With padding, output size remains the same as input (when stride=1)
-  //   output_rows = (basis->r->rows - 1) / stride_y + 1;
-  //   output_cols = (basis->cols - 1) / stride_x + 1;
-  // } else {
-  //   // Without padding, output size shrinks
-  //   output_rows = (basis->rows - k_rows) / stride_y + 1;
-  //   output_cols = (basis->cols - k_cols) / stride_x + 1;
-  // }
+  word newHeight, newWidth;
 
+  if (is_padding) {
+    // With padding, output size remains the same as input (when stride=1)
+    newHeight = (height - 1) / stride_y + 1;
+    newWidth = (width - 1) / stride_x + 1;
+  } else {
+    // Without padding, output size shrinks
+    newHeight = (height - kernel->r.rows) / stride_y + 1;
+    newWidth = (width - kernel->r.cols) / stride_x + 1;
+  }
+
+  BMPImage_4((*res), newWidth, newHeight, basis->biHeader.pixels_per_meter_h,
+             basis->biHeader.pixels_per_meter_v);
+  Mat_conv2d(&res->r, &basis->r, &kernel->r, stride_x, stride_y, is_padding);
+  Mat_conv2d(&res->g, &basis->g, &kernel->g, stride_x, stride_y, is_padding);
+  Mat_conv2d(&res->b, &basis->b, &kernel->b, stride_x, stride_y, is_padding);
+  
   return 0;
 }
 
@@ -802,10 +883,8 @@ int BMPImage_line(BMPImage *bimg, Line l, color clr) {
   int dy = abs(l.y1 - l.y0), sy = l.y0 < l.y1 ? 1 : -1;
   int err = dx - dy;
 
-  double ed = dx + dy == 0 ? 1.0 : sqrtf64((double)dx * dx + (double)dy * dy);
+  double ed = dx + dy == 0 ? 1.0 : sqrtf((double)dx * dx + (double)dy * dy);
   double wd = (l.stroke + 1.0) / 2.0; // 半线宽
-  // double inv_ed = 1.0f / ed;              // 除法转为乘法
-  // double wd_minus_1 = wd - 1.0f;          // 预计算线宽减1
 
 #define BLEND_PIXEL(px, py)                                             \
   do {                                                                         \
@@ -816,25 +895,10 @@ int BMPImage_line(BMPImage *bimg, Line l, color clr) {
       bimg->b.bytes[idx] = clr.rgb[0];                                       \
     }                                                                          \
   } while (0)
-  // #define BLEND_PIXEL(px, py, alpha)                                             \
-  // do {                                                                         \
-  //   if ((px) >= 0 && (px) < width && (py) >= 0 && (py) < height) {             \
-  //     size_t idx = (py)*width + (px);                                          \
-  //     bimg->r.bytes[idx] =                                                     \
-  //         (uint8_t)(             \
-  //                   (float)clr.rgb[2]);                                       \
-  //     bimg->g.bytes[idx] =                                                     \
-  //         (uint8_t)(             \
-  //                   (float)clr.rgb[1]);                                       \
-  //     bimg->b.bytes[idx] =                                                     \
-  //         (uint8_t)( +             \
-  //                   (float)clr.rgb[0]);                                       \
-  //   }                                                                          \
-  // } while (0)
   for (;;) {
-    // 简化强度计算
-    double alpha =
-        fmaxf64(0.0, 1.0 - (abs(err - dx + dy) / ed - wd + 1));
+    // // 简化强度计算
+    // double alpha =
+    //     fmaxf64(0.0, 1.0 - (abs(err - dx + dy) / ed - wd + 1));
     BLEND_PIXEL(l.x0, l.y0);
 
     int e2 = err, x2 = l.x0;
@@ -845,7 +909,7 @@ int BMPImage_line(BMPImage *bimg, Line l, color clr) {
       for (int y2 = l.y0; e2 < ed * wd && (l.y1 != y2 || dx > dy);
            e2 += dx) {
         y2 += sy;
-        alpha = fmaxf64(0.0, 1.0 - (abs(e2) / ed - wd + 1));
+        // alpha = fmaxf64(0.0, 1.0 - (abs(e2) / ed - wd + 1));
         BLEND_PIXEL(l.x0, y2);
       }
 
@@ -860,7 +924,7 @@ int BMPImage_line(BMPImage *bimg, Line l, color clr) {
     if (2 * e2 <= dy) {
       for (e2 = dx - e2; e2 < ed * wd && (l.x1 != x2 || dx < dy); e2 += dy) {
           x2 += sx;
-          alpha = fmaxf64(0.0, 1.0 - (abs(e2) / ed - wd + 1));
+          // alpha = fmaxf64(0.0, 1.0 - (abs(e2) / ed - wd + 1));
           BLEND_PIXEL(x2, l.y0);
       }
       

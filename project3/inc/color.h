@@ -48,5 +48,7 @@ color cvtclr_rgb2hsv(color clr);
 color cvtclr_hsv2rgb(color clr);
 color cvtclr_rgb2gray(color clr);
 color cvtclr_hsv2gray(color clr);
+color fromHex(uint32_t hex);
+int hex_to_ansi16(int hex_color);
 
 #endif

@@ -37,6 +37,12 @@ color cvtclr_rgb2hsv(color clr)
     return _clr;
 }
 
+color fromHex(uint32_t hex) {
+  color clr;
+  rgb(clr, hex >> 16, hex >> 8, hex);
+  return clr;
+}
+
 color cvtclr_hsv2rgb(color clr)
 {
     double hn = clr.hsv[2] * 2.;
@@ -106,4 +112,26 @@ color cvtclr_gray2rgb(color clr)
     color _clr;
     rgb(_clr, clr.gray[2], clr.gray[1], clr.gray[0]);
     return _clr;
+}
+
+int hex_to_ansi16(int hex_color) {
+    int r = hex_color >> 16 & 0xFF;
+    int g = hex_color >> 8 & 0xFF;
+    int b = hex_color & 0xFF;
+    
+    // calculate the bit values
+    int r_bit = (r > 127) ? 1 : 0;
+    int g_bit = (g > 127) ? 1 : 0;
+    int b_bit = (b > 127) ? 1 : 0;
+    
+    // convert to ANSI 16 color
+    int ansi_color = (r_bit << 2) | (g_bit << 1) | b_bit;
+    
+    // calculate brightness
+    int brightness = (r + g + b) / 3;
+    if (brightness > 160) {
+        ansi_color += 8;  // is high brightness
+    }
+    
+    return ansi_color;
 }

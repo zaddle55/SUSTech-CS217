@@ -97,3 +97,6 @@ CMakeUserPresets.json
 
 # java
 *.class
+
+# img
+*.bmp

@@ -176,7 +176,7 @@ MatErr Mat_confuse_avg(Mat *res, const Mat *lhs, const Mat *rhs) {
 MatErr Mat_confuse_weight(Mat *res, const Mat *lhs, const Mat *rhs,
                           const double lw, const double rw) {
   if (!res || !lhs || !rhs) {
-    // TODO
+    WARNING("Arguments of input can't be empty!");
     return MAT_NULL_POINTER;
   }
   if (lhs->rows != rhs->rows || lhs->cols != rhs->cols) {
@@ -191,7 +191,31 @@ MatErr Mat_confuse_weight(Mat *res, const Mat *lhs, const Mat *rhs,
 
   // #endif
   for (size_t i = 0; i < psize; i++) {
-    res->bytes[i] = (uint8_t)(lhs->bytes[i] * frac_l + (rhs->bytes[i]) * frac_r);
+    res->bytes[i] = (uint8_t)(lhs->bytes[i] * frac_l + rhs->bytes[i] * frac_r);
+  }
+  return MAT_OK;
+}
+
+MatErr Mat_confuse_max(Mat *res, const Mat *lhs, const Mat *rhs) {
+  if (!res || !lhs || !rhs) {
+    // TODO
+    return MAT_NULL_POINTER;
+  }
+  if (lhs->rows != rhs->rows || lhs->cols != rhs->cols) {
+    WARNING("Uncompatiable shapes of mat: between (%zu, %zu) and (%zu, %zu)",
+            lhs->rows, lhs->cols, rhs->rows, rhs->cols);
+    return MAT_SHAPE_DISMATCH;
+  }
+  size_t psize = lhs->rows * lhs->cols;
+  // #ifdef __SSE__
+  // #else
+
+  // #endif
+  for (size_t i = 0; i < psize; i++) {
+    if (lhs->bytes[i] > rhs->bytes[i])
+      res->bytes[i] = lhs->bytes[i];
+    else
+      res->bytes[i] = rhs->bytes[i];
   }
   return MAT_OK;
 }
@@ -214,9 +238,9 @@ MatErr Mat_adds(Mat *res, const Mat *lhs, const int32_t rhs) {
     }
     res->bytes[i] = sum;
   }
-  NOTION("Overflow may occur with the rhs as %d, please make sure the pixel of "
-         "result is within range of [0, 255]",
-         rhs);
+  if (overflow)
+    NOTION("Overflow may occur with the rhs as %d, please make sure the pixel of "
+          "result is within range of [0, 255]", rhs);
   return MAT_OK;
 }
 
