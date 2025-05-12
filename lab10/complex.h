@@ -23,8 +23,9 @@ public:
     Complex operator*(const Complex &c) const {
         return Complex(real_ * c.real_ - imag_ * c.imag_, real_ * c.imag_ + imag_ * c.real_);
     }
-    Complex operator~() const {
-        return Complex(real_, -imag_);
+    Complex& operator~() {
+        this->imag_ = -this->imag_;
+        return *this;
     }
     Complex operator/(const Complex &c) const {
         double denominator = c.real_ * c.real_ + c.imag_ * c.imag_;

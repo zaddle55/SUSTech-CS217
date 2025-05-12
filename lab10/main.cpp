@@ -31,18 +31,18 @@ int main() {
     cout << "After assignment, d = " << d << endl;
     cout << "====================" << endl;
 
-    Complex e = 5.3;
-    cout << "e = " << e << endl;
-    cout << "e + 2 = " << e + 2 << endl;
-    cout << "(double) e = " << static_cast<double>(e) << endl;
-    cout << "(int) e = " << static_cast<int>(e) << endl;
-    cout << "====================" << endl;
+    // Complex e = 5.3;
+    // cout << "e = " << e << endl;
+    // cout << "e + 2 = " << e + 2 << endl;
+    // cout << "(double) e = " << static_cast<double>(e) << endl;
+    // cout << "(int) e = " << static_cast<int>(e) << endl;
+    // cout << "====================" << endl;
 
-    Complex f(1, 1);
-    cout << "f = " << f << endl;
-    cout << "f / 2 = " << f / 2 << endl;
-    cout << "2 / f = " << 2 / f << endl;
-    cout << "====================" << endl;
+    // Complex f(1, 1);
+    // cout << "f = " << f << endl;
+    // cout << "f / 2 = " << f / 2 << endl;
+    // cout << "2 / f = " << 2 / f << endl;
+    // cout << "====================" << endl;
 
     return 0;
 }

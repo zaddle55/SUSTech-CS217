@@ -1,1 +1,0 @@
-gcc -O2 main.c math.c shell.c util.c -o main && valgrind ./main -p 100

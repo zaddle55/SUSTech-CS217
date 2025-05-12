@@ -21,9 +21,8 @@ MatErr Mat_alloc(Mat *mat, size_t rows, size_t cols) {
 MatErr Mat_realloc(Mat *mat, size_t rows, size_t cols) {
   if (!mat || !mat->bytes)
     return MAT_NULL_POINTER;
-  
-  mat->bytes =
-      (uint8_t *)realloc(mat->bytes, rows * cols * sizeof(uint8_t));
+
+  mat->bytes = (uint8_t *)realloc(mat->bytes, rows * cols * sizeof(uint8_t));
   if (!mat->bytes) {
     WARNING("Failed to reallocate %zu bytes for mat.",
             rows * cols * sizeof(uint8_t));
@@ -38,7 +37,6 @@ void Mat_release(Mat *mat) {
   if (!mat)
     return;
   if (mat->bytes) {
-    // WARNING("%p", mat->bytes);
     free(mat->bytes);
     mat->bytes = NULL;
   }
@@ -88,8 +86,8 @@ MatErr Mat_fillr(Mat *mat, size_t sx, size_t sy, size_t ex, size_t ey,
     return MAT_NULL_POINTER;
   if (sx >= mat->cols || sy >= mat->rows || ex >= mat->cols || ey >= mat->rows)
     return MAT_OUT_OF_BOUND;
-  for (size_t i = sy; i < ey; i++) {
-    for (size_t j = sx; j < ex; j++) {
+  for (size_t i = sy; i <= ey; i++) {
+    for (size_t j = sx; j <= ex; j++) {
       mat->bytes[i * mat->cols + j] = value;
     }
   }
@@ -128,7 +126,8 @@ MatErr Mat_pad(Mat *base, uint8_t padVal, size_t padL, size_t padT, size_t padR,
 MatErr Mat_clip(Mat *base, size_t sx, size_t sy, size_t ex, size_t ey) {
   if (!base)
     return MAT_NULL_POINTER;
-  if (sx >= base->cols || sy >= base->rows || ex >= base->cols || ey >= base->rows)
+  if (sx >= base->cols || sy >= base->rows || ex >= base->cols ||
+      ey >= base->rows)
     return MAT_OUT_OF_BOUND;
   size_t rows = base->rows;
   size_t cols = base->cols;
@@ -186,10 +185,11 @@ MatErr Mat_confuse_weight(Mat *res, const Mat *lhs, const Mat *rhs,
   }
   size_t psize = lhs->rows * lhs->cols;
   double frac_l = lw / (lw + rw), frac_r = rw / (lw + rw);
-  // #ifdef __SSE__
-  // #else
+  if (frac_l < 0 || frac_r < 0) {
+    WARNING("The weight of lhs and rhs should be positive!");
+    return MAT_OUT_OF_BOUND;
+  }
 
-  // #endif
   for (size_t i = 0; i < psize; i++) {
     res->bytes[i] = (uint8_t)(lhs->bytes[i] * frac_l + rhs->bytes[i] * frac_r);
   }
@@ -198,7 +198,7 @@ MatErr Mat_confuse_weight(Mat *res, const Mat *lhs, const Mat *rhs,
 
 MatErr Mat_confuse_max(Mat *res, const Mat *lhs, const Mat *rhs) {
   if (!res || !lhs || !rhs) {
-    // TODO
+    WARNING("Arguments of input can't be empty!");
     return MAT_NULL_POINTER;
   }
   if (lhs->rows != rhs->rows || lhs->cols != rhs->cols) {
@@ -207,10 +207,7 @@ MatErr Mat_confuse_max(Mat *res, const Mat *lhs, const Mat *rhs) {
     return MAT_SHAPE_DISMATCH;
   }
   size_t psize = lhs->rows * lhs->cols;
-  // #ifdef __SSE__
-  // #else
 
-  // #endif
   for (size_t i = 0; i < psize; i++) {
     if (lhs->bytes[i] > rhs->bytes[i])
       res->bytes[i] = lhs->bytes[i];
@@ -222,7 +219,7 @@ MatErr Mat_confuse_max(Mat *res, const Mat *lhs, const Mat *rhs) {
 
 MatErr Mat_adds(Mat *res, const Mat *lhs, const int32_t rhs) {
   if (!res || !lhs || !rhs) {
-    // TODO
+    WARNING("Arguments of input can't be empty!");
     return MAT_NULL_POINTER;
   }
   bool overflow = false;
@@ -239,12 +236,18 @@ MatErr Mat_adds(Mat *res, const Mat *lhs, const int32_t rhs) {
     res->bytes[i] = sum;
   }
   if (overflow)
-    NOTION("Overflow may occur with the rhs as %d, please make sure the pixel of "
-          "result is within range of [0, 255]", rhs);
+    NOTION(
+        "Overflow may occur with the rhs as %d, please make sure the pixel of "
+        "result is within range of [0, 255]",
+        rhs);
   return MAT_OK;
 }
 
 double bilinearInterpolation(const Mat *channel, double x, double y) {
+  if (!channel || !channel->bytes) {
+    WARNING("Channel can't be null!");
+    return 0;
+  }
   int x1 = (int)x;
   int y1 = (int)y;
   int x2 = x1 + 1;
@@ -263,9 +266,6 @@ double bilinearInterpolation(const Mat *channel, double x, double y) {
                  dx * (1 - dy) * channel->bytes[y1 * channel->cols + x2] +
                  (1 - dx) * dy * channel->bytes[y2 * channel->cols + x1] +
                  dx * dy * channel->bytes[y2 * channel->cols + x2];
-
-  // NOTION("value: %lf", value);
-
   return value;
 }
 
@@ -288,7 +288,12 @@ AffineMat AffineMat_create(double angle, double scaleX, double scaleY,
 }
 
 AffineMat AffineMat_inv(const AffineMat *m) {
-  AffineMat inv;
+
+  AffineMat inv = {0, 0, 0, 0, 0, 0};
+  if (!m) {
+    WARNING("Affine Mat can't b null!");
+    return inv;
+  }
 
   double det = m->a * m->e - m->b * m->d;
   if (fabs(det) < FLT_EPSILON) {
@@ -378,16 +383,6 @@ void fft1d(double complex *data, size_t n, bool inverse) {
 
   // 位反转排序
   fft_change(data, n, k);
-  // for (int i = 0; i < n; i++) {
-  //   int j = bit_reverse(i, k);
-  //   if (i < j) {
-  //     complex double temp = data[i];
-  //     data[i] = data[j];
-  //     data[j] = temp;
-  //   }
-  // }
-
-  //   int half_n = n >> 1;
 
   // 蝴蝶运算
   for (size_t len = 2; len <= n; len <<= 1) {
@@ -424,7 +419,7 @@ void fft2d(FFTMat *mat, bool inverse) {
     WARNING("The value of rows should be the power of 2, but got %zu",
             mat->rows);
     return;
-  } 
+  }
   if ((mat->rows & (mat->rows - 1)) != 0) {
     WARNING("The value of cols should be the power of 2, but got %zu",
             mat->cols);
@@ -449,7 +444,7 @@ void fft2d(FFTMat *mat, bool inverse) {
       mat->cdata[i * mat->cols + j] = temp[i];
     }
   }
-  
+
   free(temp);
 }
 
@@ -468,18 +463,15 @@ void fft_shift(FFTMat *mat) {
       size_t newI = (i + halfRows) % rows;
       size_t newJ = (j + halfCols) % cols;
       temp.cdata[newI * cols + newJ] = mat->cdata[i * cols + j];
-      //   setComplexValue(&temp, newI, newJ, getComplexValue(mat, i, j));
     }
   }
 
-  // memcpy(mat->cdata, temp.cdata, rows * cols);
   // 将临时矩阵拷贝回原矩阵
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        //   setComplexValue(mat, i, j, getComplexValue(&temp, i, j));
-        mat->cdata[i * cols + j] = temp.cdata[i * cols + j];
-      }
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
+      mat->cdata[i * cols + j] = temp.cdata[i * cols + j];
     }
+  }
 
   FFTMat_release(&temp);
 }
@@ -496,7 +488,6 @@ void fft_magnitude(Mat *u8mat, FFTMat *fmat) {
     for (size_t j = 0; j < cols; j++) {
       double complex value = fmat->cdata[i * cols + j];
       double mag = log(1.0 + cabs(value));
-      // double mag = cabs(value);
       fmat->ddata[i * cols + j] = mag;
       if (mag > maxMag) {
         maxMag = mag;
@@ -509,16 +500,13 @@ void fft_magnitude(Mat *u8mat, FFTMat *fmat) {
     for (size_t j = 0; j < cols; j++) {
       double mag = fmat->ddata[i * cols + j];
       // 归一化到[0, 255]范围
-      u8mat->bytes[i * cols + j] =
-          (uint8_t)(((mag) / (maxMag)) * 255);
-      // u8mat->bytes[i * cols + j] =
-      //     (uint8_t)roundf((mag > 255.0)? 255.0 : mag);
+      u8mat->bytes[i * cols + j] = (uint8_t)(((mag) / (maxMag)) * 255);
     }
   }
 }
 
-MatErr Mat_conv2d(Mat *res, const Mat *basis, const Mat *kernel, size_t stride_x,
-                  size_t stride_y, bool is_padding) {
+MatErr Mat_conv2d(Mat *res, const Mat *basis, const Mat *kernel,
+                  size_t stride_x, size_t stride_y, bool is_padding) {
   // Parameter validation
   if (!res || !basis || !kernel)
     return MAT_NULL_POINTER;
@@ -571,11 +559,10 @@ MatErr Mat_conv2d(Mat *res, const Mat *basis, const Mat *kernel, size_t stride_x
       // Convolve the kernel with the input region
       for (size_t k_y = 0; k_y < k_rows; k_y++) {
         for (size_t k_x = 0; k_x < k_cols; k_x++) {
-          // Calculate input position with kernel offset
+
           int64_t in_y = in_y_start + k_y - (is_padding ? k_center_y : 0);
           int64_t in_x = in_x_start + k_x - (is_padding ? k_center_x : 0);
 
-          // Skip if outside input bounds (zero padding effect)
           if (in_y < 0 || in_y >= (int64_t)basis->rows || in_x < 0 ||
               in_x >= (int64_t)basis->cols) {
             continue;

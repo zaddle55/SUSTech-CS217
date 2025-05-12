@@ -519,9 +519,10 @@ int parse_scale_command(int argc, char *argv[], CommandParams *params) {
   bool input_set = false, output_set = false, scale_set = false;
 
   static struct option long_options[] = {{"help", no_argument, 0, 'h'},
-                                         {0, 0, 0, 0},
                                          {"sx", required_argument, 0, '1'},
-                                         {"sy", required_argument, 0, '2'}};
+                                         {"sy", required_argument, 0, '2'},
+      {0, 0, 0, 0},
+};
 
   optind = 2; // Skip the command name
 
@@ -614,6 +615,7 @@ int parse_trans_command(int argc, char *argv[], CommandParams *params) {
     case '2':
       params->transY = atoi(optarg);
       trans_set = true;
+      break;
     case 'h':
       printf("Usage: cimage trans -i [src.ext] -o [dest.ext] --tx=[transX] --ty="
              "[transY]\n");
@@ -1430,12 +1432,11 @@ int parse_hex_color(const char *str) {
 }
 
 // Stub implementations for the image processing functions
-// These would be implemented in separate files
 int image_merge(const char *src1, const char *src2, const char *dest,
                 OpRule rule, float w1, float w2) {
   NOTION("Merging images %s and %s to %s using rule %d\n", src1, src2, dest,
          rule);
-  // Actual implementation would go here
+  
   FILE *fp1 = fopen(src1, "rb");
   FILE *fp2 = fopen(src2, "rb");
   if (fp1 == NULL) {
@@ -1500,8 +1501,7 @@ int image_merge(const char *src1, const char *src2, const char *dest,
 int image_conv(const char *src1, const char *src2, const char *dest,
                 bool is_padding) {
   NOTION("Convolving images %s and %s to %s", src1, src2, dest);
-  // Actual implementation would go here
-  // Actual implementation would go here
+  
   FILE *fp1 = fopen(src1, "rb");
   FILE *fp2 = fopen(src2, "rb");
   if (fp1 == NULL) {
@@ -1563,7 +1563,7 @@ int image_conv(const char *src1, const char *src2, const char *dest,
 
 int image_convert_color(const char *src, const char *dest, const char* mode) {
   NOTION("Converting color mode of %s to %s using mode '%s'\n", src, dest, mode);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1609,8 +1609,7 @@ int image_convert_color(const char *src, const char *dest, const char* mode) {
 
 int image_fft(const char *src, const char *dest, bool shift) {
   NOTION("Performing FFT on %s to %s with shift=%d\n", src, dest, shift);
-  // Actual implementation would go here
-
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1655,7 +1654,7 @@ int image_fft(const char *src, const char *dest, bool shift) {
 int image_scale(const char *src, const char *dest, double scaleX, double scaleY)    {
   NOTION("Scaling %s to %s by factor X as %.2f and factor Y as %.2f\n", src, dest, scaleX,
          scaleY);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1702,7 +1701,7 @@ int image_scale(const char *src, const char *dest, double scaleX, double scaleY)
 
 int image_translate(const char *src, const char *dest, int tx, int ty) {
   NOTION("Translating %s to %s by (%d, %d)\n", src, dest, tx, ty);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1750,7 +1749,7 @@ int image_translate(const char *src, const char *dest, int tx, int ty) {
 
 int image_rotate(const char *src, const char *dest, double angle) {
   NOTION("Rotating %s to %s by %lf°\n", src, dest, angle);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1798,7 +1797,7 @@ int image_rotate(const char *src, const char *dest, double angle) {
 
 int image_flip(const char *src, const char *dest, bool flipX, bool flipY) {
   NOTION("Flipping %s to %s\n", src, dest);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1847,7 +1846,7 @@ int image_flip(const char *src, const char *dest, bool flipX, bool flipY) {
 int image_add_noise(const char *src, const char *dest, float probability) {
   NOTION("Adding noise to %s and saving to %s with probability %.2f\n", src,
          dest, probability);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1893,7 +1892,7 @@ int image_add_noise(const char *src, const char *dest, float probability) {
 int image_to_ascii(const char *src, int color) {
   NOTION("Converting %s to ASCII art with color 0x%06X\n", src,
          color);
-  // Actual implementation would go here
+  
 
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
@@ -1936,7 +1935,7 @@ int image_draw_line(const char *src, const char *dest, int color, int x0,
   NOTION(
       "Drawing line on %s to %s with color 0x%06X from (%d, %d) to (%d, %d)\n",
       src, dest, color, x0, y0, x1, y1);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -1985,7 +1984,7 @@ int image_draw_rect(const char *src, const char *dest, int color, int x, int y,
   NOTION("Drawing rectangle on %s to %s with color 0x%06X at (%d, %d) with "
          "size %dx%d\n",
          src, dest, color, x, y, dx, dy);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -2034,7 +2033,7 @@ int image_draw_circle(const char *src, const char *dest, int color, double r,
   NOTION("Drawing circle on %s to %s with color 0x%06X, radius %.2f at center "
          "(%d, %d)\n",
          src, dest, color, r, rx, ry);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -2082,7 +2081,7 @@ int image_clip(const char *src, const char *dest, int x, int y, int dx,
                int dy) {
   NOTION("Clipping %s to %s from (%d, %d) with size %dx%d\n", src, dest, x, y,
          dx, dy);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -2127,7 +2126,7 @@ int image_clip(const char *src, const char *dest, int x, int y, int dx,
 
 int image_to_base64(const char *src, const char *dest) {
   NOTION("Converting %s to base64 and saving to %s\n", src, dest);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);
@@ -2153,7 +2152,7 @@ int image_to_base64(const char *src, const char *dest) {
 
 int image_info(const char *src) {
   NOTION("Displaying information for image %s\n", src);
-  // Actual implementation would go here
+  
   FILE *fp = fopen(src, "rb");
   if (fp == NULL) {
     WARNING("Error opening file: %s", src);

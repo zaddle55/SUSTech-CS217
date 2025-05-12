@@ -18,9 +18,9 @@ color cvtclr_rgb2hsv(color clr)
     } else if (cmax == rn) {
         hn = 60 * (((gn - bn) / delta) + (gn < bn ? 6 : 0)); // 修正公式
     } else if (cmax == gn) {
-        hn = 60 * (((bn - rn) / delta) + 2); // 修正公式
+        hn = 60 * (((bn - rn) / delta) + 2);
     } else { // cmax == bn
-        hn = 60 * (((rn - gn) / delta) + 4); // 修正公式
+        hn = 60 * (((rn - gn) / delta) + 4);
     }
     
     /* calculate s value */

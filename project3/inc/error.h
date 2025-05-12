@@ -83,11 +83,4 @@
 #define MEM_ACCESS_NULLPTR(__ptr_n, __why) PANIC("<Memory Exception> Accessing NULL pointer '%s': %s", __ptr_n, __why)
 #define MEM_ACCESS_OOB(__ptr_n, __idx, __size) PANIC("<Memory Exception> Accessing out of bound at index %d of '%s' with size %d", __idx, __ptr_n, __size)
 
-// ############################## Stream Exception ##############################
-
-#define STREAM_EXCEPT_
-#define STREAM_EMPTY_FILE(__fsize) WARNING("<Stream Exception> The size of input file can't be of %d bytes", __fsize)
-#define STREAM_HAS_CLOSED WARNING("<Stream Exception> Stream has been shudown.")
-#define STREAM_NO_AVAIL()
-
 #endif // ERROR_H_
