@@ -1,0 +1,45 @@
+# clangd配置文件 (.clangd)
+# 适用于C++17项目的推荐配置
+
+# 编译标准设置
+CompileFlags:
+  # 指定C++17标准
+  Add: 
+    - "-std=c++17"
+    # 常用的警告和优化选项
+    - "-Wall"
+    - "-Wextra"
+    - "-Wpedantic"
+    # 优化级别（可根据需要调整）
+    - "-O2"
+
+# 头文件搜索路径配置
+# 如果你的项目有特定的包含目录，可以在这里添加
+HeaderSearchPaths:
+  - "./include"
+  - "./src"
+
+# 诊断配置
+Diagnostics:
+  # 启用更多代码检查
+  Checks:
+    - "modernize-*"
+    - "performance-*"
+    # 排除一些过于严格的检查（可选）
+    - "-modernize-use-trailing-return-type"
+
+# 建议和代码补全
+Completion:
+  # 启用详细的代码补全
+  AllScopes: true
+  # 显示函数原型
+  DetailedCompletionName: true
+
+# 格式化配置
+# 可以使用.clang-format文件进行更详细的配置
+FormatStyle: Google
+
+# 调试和日志
+# 取消注释以启用调试输出
+# Logging:
+#   Level: Debug
