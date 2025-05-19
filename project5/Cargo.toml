@@ -1,0 +1,21 @@
+[package]
+name = "project5"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+imageproc = "0.25.0"
+image = "0.25.6"
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+
+[[bench]]
+name = "bench_io"
+harness = false
+
+[profile.dev]
+opt-level = 3               # 使用稍高一些的优化级别，最低是0，最高是3
+overflow-checks = false     # 关闭整数溢出检查
+lto = true                 # 启用链接时间优化
+debug = false              # 关闭调试信息

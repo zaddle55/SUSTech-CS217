@@ -100,3 +100,28 @@ CMakeUserPresets.json
 
 # img
 *.bmp
+
+# python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.egg-info/
+*.egg
+*.whl
+*.mypy_cache/
+*.pytest_cache/
+*.coverage
+*.cover
+*.hypothesis/
+*.tox/
+*.venv/
+*.env
+*.venv/
+*.env/
+*.ipynb_checkpoints/
+
+#typst
+*.typ
+*.typst
+*.typst/

@@ -12,12 +12,16 @@ CompileFlags:
     - "-Wpedantic"
     # 优化级别（可根据需要调整）
     - "-O2"
+    - "-I /usr/include/c++/11"
 
 # 头文件搜索路径配置
 # 如果你的项目有特定的包含目录，可以在这里添加
 HeaderSearchPaths:
   - "./include"
   - "./src"
+  - "/usr/local/include"
+  - "/usr/include"
+  - "/usr/include/c++/11"
 
 # 诊断配置
 Diagnostics:
@@ -34,6 +38,13 @@ Completion:
   AllScopes: true
   # 显示函数原型
   DetailedCompletionName: true
+
+FallbackFlags:
+  # 如果没有找到编译命令文件，使用默认的编译选项
+  Add:
+    - "-std=c++17"
+    - "-Wall"
+    - "-Wextra"
 
 # 格式化配置
 # 可以使用.clang-format文件进行更详细的配置
