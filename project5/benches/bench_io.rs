@@ -152,7 +152,7 @@ fn decode_1cNxM(c: &mut Criterion) {
 
 
 criterion_group!(benches,
-    decode_1cNxN, encode_1cNxN,
+    encode_1cNxN, decode_1cNxN, 
     encode_Nc4096x4096, decode_Nc4096x4096,
     encode_1cNxM, decode_1cNxM);
 criterion_main!(benches);
