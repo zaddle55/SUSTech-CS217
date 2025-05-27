@@ -5,6 +5,10 @@
 using namespace std;
 using namespace mcv;
 
+#ifdef MEM
+#define ITER_ONCE
+#endif
+
 const string IMG_DIR = "./img/";
 
 static void encode_1cNxN(benchmark::State &state) {
@@ -25,6 +29,9 @@ static void encode_1cNxN(benchmark::State &state) {
 }
 
 BENCHMARK(encode_1cNxN)
+#ifdef ITER_ONCE
+    ->Iterations(1)
+#endif
     ->RangeMultiplier(2)
     ->Range(128, 8192)
     ->Unit(benchmark::kMillisecond)
@@ -43,6 +50,9 @@ static void decode_1cNxN(benchmark::State &state) {
 }
 
 BENCHMARK(decode_1cNxN)
+#ifdef ITER_ONCE
+    ->Iterations(1)
+#endif
     ->RangeMultiplier(2)
     ->Range(128, 8192)
     ->Unit(benchmark::kMillisecond)
@@ -78,6 +88,9 @@ static void encode_Nc4096x4096(benchmark::State &state) {
 }
 
 BENCHMARK(encode_Nc4096x4096)
+#ifdef ITER_ONCE
+    ->Iterations(1)
+#endif
     ->Arg(1)
     ->Arg(3)
     ->Arg(4)
@@ -104,6 +117,9 @@ static void decode_Nc4096x4096(benchmark::State &state) {
 }
 
 BENCHMARK(decode_Nc4096x4096)
+#ifdef ITER_ONCE
+    ->Iterations(1)
+#endif
     ->Arg(1)
     ->Arg(3)
     ->Arg(4)
@@ -129,6 +145,9 @@ static void encode_1cNxM(benchmark::State &state) {
 }
 
 BENCHMARK(encode_1cNxM)
+#ifdef ITER_ONCE
+    ->Iterations(1)
+#endif
     ->Args({240, 4860})
     ->Args({360, 3240})
     ->Args({480, 2430})
@@ -156,6 +175,9 @@ static void decode_1cNxM(benchmark::State &state) {
 }
 
 BENCHMARK(decode_1cNxM)
+#ifdef ITER_ONCE
+    ->Iterations(1)
+#endif
     ->Args({240, 4860})
     ->Args({360, 3240})
     ->Args({480, 2430})

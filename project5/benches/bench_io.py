@@ -18,50 +18,50 @@ def test_encode_1cNxN(benchmark, N):
     def encode(args):
         mat, fname = args
         cv2.imwrite(fname, mat)
-    
+
     benchmark.pedantic(lambda: encode((mat, fname)), iterations=1, rounds=3)
 
 # 参数化测试，对应decode_1cNxN
 @pytest.mark.parametrize('N', [128, 256, 512, 1024, 2048, 4096, 8192])
 def test_decode_1cNxN(benchmark, N):
     fname = f"{IMG_DIR}1c{N}x{N}.bmp"
-    
+
     # 确保文件存在
     if not os.path.exists(fname):
         mat = np.ones((N, N, 1), dtype=np.uint8) * 255
         cv2.imwrite(fname, mat)
-    
+
     def decode():
         return cv2.imread(fname, cv2.IMREAD_GRAYSCALE)
-    
+
     benchmark(decode)
 
 # 参数化测试，对应encode_Nc4096x4096
 @pytest.mark.parametrize('N', [1, 3, 4])
 def test_encode_Nc4096x4096(benchmark, N):
     fname = f"{IMG_DIR}{N}c4096x4096.bmp"
-    
+
     mat = np.ones((4096, 4096, N), dtype=np.uint8) * 255  # WHITE
-    
+
     def encode(args):
         mat, fname = args
         cv2.imwrite(fname, mat)
-    
+
     benchmark.pedantic(lambda: encode((mat, fname)), iterations=1, rounds=3)
 
 # 参数化测试，对应decode_Nc4096x4096
 @pytest.mark.parametrize('N', [1, 3, 4])
 def test_decode_Nc4096x4096(benchmark, N):
     fname = f"{IMG_DIR}{N}c4096x4096.bmp"
-    
+
     # 确保文件存在
     if not os.path.exists(fname):
         mat = np.ones((4096, 4096, N), dtype=np.uint8) * 255
         cv2.imwrite(fname, mat)
-    
+
     def decode():
         return cv2.imread(fname, cv2.IMREAD_UNCHANGED)
-    
+
     benchmark(decode)
 
 # 参数化测试，对应encode_1cNxM

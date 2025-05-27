@@ -125,3 +125,10 @@ __pycache__/
 *.typ
 *.typst
 *.typst/
+
+#image
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
