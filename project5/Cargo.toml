@@ -11,11 +11,11 @@ image = "0.25.6"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [[bench]]
-name = "bench_io"
+name = "bench_filter"
 harness = false
 
 [profile.dev]
-opt-level = 3               # 使用稍高一些的优化级别，最低是0，最高是3
-overflow-checks = false     # 关闭整数溢出检查
-lto = true                 # 启用链接时间优化
-debug = false              # 关闭调试信息
+opt-level = 3
+overflow-checks = false
+lto = true
+debug = false

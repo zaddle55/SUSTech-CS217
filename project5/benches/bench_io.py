@@ -8,6 +8,13 @@ IMG_DIR = "./img/"
 if not os.path.exists(IMG_DIR):
     os.makedirs(IMG_DIR)
 
+# warmup
+@pytest.fixture(scope='module', autouse=True)
+def warmup():
+    # 预热，确保OpenCV加载
+    mat = np.ones((100, 100, 3), dtype=np.uint8) * 255
+    cv2.imwrite(f"{IMG_DIR}warmup.bmp", mat)
+
 # 参数化测试，对应encode_1cNxN
 @pytest.mark.parametrize('N', [128, 256, 512, 1024, 2048, 4096, 8192])
 def test_encode_1cNxN(benchmark, N):

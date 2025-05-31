@@ -1,6 +1,6 @@
 host,function,duration_formatted(us),M,N
-zaddle-Ubuntu-Satus,test_encode_1cNxN,111.6220,,128
-zaddle-Ubuntu-Satus,test_encode_1cNxN,95.5837,,256
+zaddle-Ubuntu-Satus,test_encode_1cNxN,36.6613,,128
+zaddle-Ubuntu-Satus,test_encode_1cNxN,67.2180,,256
 zaddle-Ubuntu-Satus,test_encode_1cNxN,165.8910,,512
 zaddle-Ubuntu-Satus,test_encode_1cNxN,536.4820,,1024
 zaddle-Ubuntu-Satus,test_encode_1cNxN,2186.2310,,2048

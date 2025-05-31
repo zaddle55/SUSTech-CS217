@@ -135,3 +135,6 @@ __pycache__/
 
 #benchmarks
 **/.benchmarks/
+
+#Halide
+**/Halide/

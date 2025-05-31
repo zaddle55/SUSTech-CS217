@@ -1,0 +1,15 @@
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message,"height","width"
+"boxfilter_NxM/300/200",174,162.83,33277.1,us,,,,,,200,300
+"boxfilter_NxM/600/400",14,658.46,49076.3,us,,,,,,400,600
+"boxfilter_NxM/900/600",10,1504.5,54049.6,us,,,,,,600,900
+"boxfilter_NxM/1200/800",14,3075.9,58352.4,us,,,,,,800,1200
+"boxfilter_NxM/1800/1200",18,6917.5,60422.2,us,,,,,,1200,1800
+"boxfilter_NxM/2400/1600",14,12090,58256.2,us,,,,,,1600,2400
+"boxfilter_NxM/3000/2000",9,18757,79721.2,us,,,,,,2000,3000
+"boxfilter_NxM/3600/2400",7,27629,107492,us,,,,,,2400,3600
+"boxfilter_NxM/6000/4000",3,126030,263800,us,,,,,,4000,6000
+"boxfilter_KxK/3",26,660.96,41028.5,us,,,,,,,
+"boxfilter_KxK/5",39,658.70,38337,us,,,,,,,
+"boxfilter_KxK/7",16,658.62,41563.3,us,,,,,,,
+"boxfilter_KxK/9",11,658.13,58403.1,us,,,,,,,
+"boxfilter_KxK/11",13,658.21,56813.5,us,,,,,,,
