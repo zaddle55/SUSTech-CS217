@@ -1,5 +1,4 @@
-use imageproc::{definitions::Image, filter::{self, Kernel}, map::ChannelMap};
-use image::{ImageBuffer, ImageReader, Pixel, Rgb, RgbImage};
+use imageproc::{filter};
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 
 const IMAGE_DIR: &str = "img/";
@@ -24,9 +23,6 @@ fn filter_NxN(c: &mut Criterion) {
     (6000, 4000)].iter() {
         let fname = format!("{}sample_{}x{}.jpg", IMAGE_DIR, w, h);
         let img = image::open(&fname).expect("Failed to open image").to_luma8();
-        // let kernel = &[1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0,
-        //       1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0,
-        //       1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0];
         group.bench_with_input(BenchmarkId::new("Filter NxN RGB Image", w), w, |b, _| {
             b.iter(|| {
                 let _ = filter::box_filter(&img, 1, 1);
@@ -48,7 +44,7 @@ fn filter_KxK(c: &mut Criterion) {
     for k in [3, 5, 7, 9, 11].iter() {
         let fname = format!("{}sample_600x400.jpg", IMAGE_DIR);
         let img = image::open(&fname).expect("Failed to open image").to_luma8();
-        let kernel = vec![1.0 / (*k * *k) as f32; (*k * *k) as usize];
+        // let kernel = vec![1.0 / (*k * *k) as f32; (*k * *k) as usize];
         group.bench_with_input(BenchmarkId::new("Filter KxK RGB Image", k), k, |b, _| {
             b.iter(|| {
                 let _ = filter::box_filter(&img, k >> 1, k >> 1);

@@ -11,11 +11,10 @@ if not os.path.exists(IMG_DIR):
 # warmup
 @pytest.fixture(scope='module', autouse=True)
 def warmup():
-    # 预热，确保OpenCV加载
+
     mat = np.ones((100, 100, 3), dtype=np.uint8) * 255
     cv2.boxFilter(mat, -1, (3, 3), (1, 1), borderType=cv2.BORDER_CONSTANT)
 
-# 参数化测试，对应filterNxN
 @pytest.mark.parametrize('N, M', [
     (300, 200),
     (600, 400),

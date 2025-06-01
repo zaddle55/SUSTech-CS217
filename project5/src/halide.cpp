@@ -20,8 +20,6 @@ Func optimized_blur_3x3(Buffer<float> input_buffer) {
   Var x, y, xi, yi;
 
   Func clamped;
-
-  // 使用 clamp 避免边界问题
   clamped(x, y) = input_buffer(clamp(x, 0, input_buffer.width() - 1),
                                 clamp(y, 0, input_buffer.height() - 1));
 
@@ -38,44 +36,31 @@ Func optimized_blur_3x3(Buffer<float> input_buffer) {
 
 int main() {
   try {
-    printf("开始 Halide 程序...\n");
-
-    // 定义变量
     Var x, y, c;
 
-    // 示例2: 图像处理（正确处理边界）
     printf("\n创建测试图像...\n");
-    Buffer<float> input(600, 400); // 较小的测试图像
+    Buffer<float> input(600, 400);
 
-    // 填充测试数据
     for (int y = 0; y < input.height(); y++) {
       for (int x = 0; x < input.width(); x++) {
-        input(x, y) = (x + y) % 256; // 简单的渐变图像
+        input(x, y) = (x + y) % 256;
       }
     }
     printf("测试图像创建完成: %dx%dx%d\n", input.width(), input.height(),
            input.channels());
 
-    // 示例3: 安全的模糊函数
-    printf("\n创建安全的模糊函数...\n");
-
     Target target_avx2 = Target("x86-64-linux-avx2");
 
     printf("编译目标: %s\n", target_avx2.to_string().c_str());
-
     Func blur = optimized_blur_3x3(input);
     blur.compile_to_lowered_stmt("blur.html", {input}, HTML, target_avx2);
     blur.compile_to_c("./blur_generated.c", {input}, "blur_func", target_avx2);
-    // 使用 clamp 避免边界问题
-    
-    printf("计算模糊效果...\n");
+
     HALIDE_TIME_START()
     Buffer<float> blur_result;
         blur.realize(blur_result);
-    HALIDE_TIME_END("模糊计算时间");
+    HALIDE_TIME_END("滤波计算时间");
     printf("模糊计算完成\n");
-    printf("测试点 (20, 20, 0): %f -> %f\n", input(20, 20, 0),
-           blur_result(20, 20, 0));
 
     return 0;
   } catch (const Halide::CompileError &e) {
